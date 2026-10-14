@@ -4,7 +4,7 @@ import { ClientRouter } from 'astro:transitions';
 import SiteChrome from '../components/SiteChrome.astro';
 import site from '../data/site.json';
 import { withBase } from '../lib/url';
-import { flipX } from '../scripts/transitions';
+import { slideUp } from '../scripts/transitions';
 
 interface Props { title: string; description?: string; en?: string; }
 const { title, description = site.description, en = '' } = Astro.props;
@@ -29,7 +29,7 @@ const pageTitle = title + '｜' + site.labName + '（' + site.labNameAlt + '）'
   </head>
   <body class="subpage">
     <SiteChrome />
-    <div class="flip" transition:name="page" transition:animate={flipX}>
+    <div class="flip" transition:name="page" transition:animate={slideUp}>
       <main class="page wrap">
         <header class="page-head">
           {en && <p class="label">{en}</p>}

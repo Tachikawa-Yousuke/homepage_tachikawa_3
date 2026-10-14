@@ -1,5 +1,5 @@
 ---
-// 全ページ共通: 上部バー（ハンバーガー＋ロゴ＋配色）、左から出るナビのモーダル、影
+// 全ページ共通: 左上のハンバーガー、左から出るナビのモーダル（配色の切替もここ）、本体にかかる影
 import site from '../data/site.json';
 import { withBase } from '../lib/url';
 const nav = [
@@ -14,14 +14,10 @@ const nav = [
 ];
 const themes = [{ key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, { key: 'green', label: '緑' }, { key: 'black', label: '黒' }];
 ---
-<header class="topbar" transition:persist="topbar">
+<header class="topbar">
   <button class="burger" id="burger" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="drawer"><span></span></button>
-  <a class="brand" href={withBase('/')}><b></b>M2D Lab</a>
-  <div class="theme-picker" role="group" aria-label="配色">
-    {themes.map((t) => <button type="button" class="theme-dot" data-theme-key={t.key} title={'配色: ' + t.label} aria-label={'配色: ' + t.label}></button>)}
-  </div>
 </header>
-<div class="shade" id="shade" hidden></div>
+<div class="shade" id="shade"></div>
 <nav class="drawer" id="drawer" aria-label="メインナビゲーション" aria-hidden="true">
   <div class="drawer-head">
     <span class="brand"><b></b>M2D Lab</span>
@@ -30,38 +26,44 @@ const themes = [{ key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, 
   <ul>
     {nav.map((n) => <li><a href={n.href}><span class="en">{n.en}</span>{n.label}</a></li>)}
   </ul>
+  <div class="drawer-themes">
+    <span class="en">配色</span>
+    <div class="theme-picker" role="group" aria-label="配色">
+      {themes.map((t) => <button type="button" class="theme-dot" data-theme-key={t.key} title={'配色: ' + t.label} aria-label={'配色: ' + t.label}></button>)}
+    </div>
+  </div>
   <p class="drawer-foot">{site.labName}｜{site.labNameAlt}<br /><span class="en">{site.universityEn}</span></p>
 </nav>
 
 <script>
-  // ナビのモーダルと配色。ページ切替（View Transitions）後も動くよう astro:page-load で毎回結び直す
+  // ナビのモーダルと配色。要素はクリックのたびに探す（ページ切替で要素が入れ替わっても動く）
   const THEMES = ['yellow', 'navy', 'green', 'black'];
   const current = () => document.documentElement.dataset.theme || 'yellow';
   function setTheme(name) {
     document.documentElement.dataset.theme = name;
     try { localStorage.setItem('m2d-theme', name); } catch (e) {}
-    document.querySelectorAll('.theme-dot').forEach((b) => b.classList.toggle('on', b.dataset.themeKey === name));
+    markDots();
     document.dispatchEvent(new CustomEvent('m2d:theme', { detail: name }));
   }
-  function bind() {
-    const burger = document.getElementById('burger'), drawer = document.getElementById('drawer'), shade = document.getElementById('shade'), closeBtn = document.getElementById('drawer-close');
-    if (!burger || burger.dataset.bound) return;
-    burger.dataset.bound = '1';
-    const open = (on) => {
-      document.body.classList.toggle('nav-open', on);
-      burger.setAttribute('aria-expanded', String(on)); burger.setAttribute('aria-label', on ? 'メニューを閉じる' : 'メニューを開く');
-      drawer.setAttribute('aria-hidden', String(!on)); shade.hidden = !on;
-    };
-    burger.addEventListener('click', () => open(!document.body.classList.contains('nav-open')));
-    shade.addEventListener('click', () => open(false));
-    closeBtn.addEventListener('click', () => open(false));
-    addEventListener('keydown', (e) => { if (e.key === 'Escape') open(false); });
-    drawer.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => open(false)));
-    document.querySelectorAll('.theme-dot').forEach((b) => b.addEventListener('click', () => setTheme(b.dataset.themeKey)));
-    document.querySelectorAll('.theme-dot').forEach((b) => b.classList.toggle('on', b.dataset.themeKey === current()));
+  function markDots() { document.querySelectorAll('.theme-dot').forEach((b) => b.classList.toggle('on', b.dataset.themeKey === current())); }
+  function setOpen(on) {
+    const burger = document.getElementById('burger'), drawer = document.getElementById('drawer');
+    document.body.classList.toggle('nav-open', on);
+    if (burger) { burger.setAttribute('aria-expanded', String(on)); burger.setAttribute('aria-label', on ? 'メニューを閉じる' : 'メニューを開く'); }
+    if (drawer) drawer.setAttribute('aria-hidden', String(!on));
   }
-  // ページ切替後に <html data-theme> が初期値に戻るので、保存した配色を再適用する
-  document.addEventListener('astro:after-swap', () => { try { const th = localStorage.getItem('m2d-theme'); if (THEMES.includes(th)) document.documentElement.dataset.theme = th; } catch (e) {} });
-  document.addEventListener('astro:page-load', bind);
-  bind();
+  if (!document.documentElement.dataset.navBound) {
+    document.documentElement.dataset.navBound = '1';
+    document.addEventListener('click', (e) => {
+      const el = e.target instanceof Element ? e.target : null; if (!el) return;
+      if (el.closest('#burger')) { setOpen(!document.body.classList.contains('nav-open')); return; }
+      if (el.closest('#drawer-close') || el.closest('#shade') || el.closest('#drawer a')) { setOpen(false); }
+      const dot = el.closest('.theme-dot'); if (dot) setTheme(dot.dataset.themeKey);
+    });
+    addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+    // ページ切替後: 保存した配色を再適用し、メニューは閉じた状態に
+    document.addEventListener('astro:after-swap', () => { try { const th = localStorage.getItem('m2d-theme'); if (THEMES.includes(th)) document.documentElement.dataset.theme = th; } catch (e) {} setOpen(false); });
+    document.addEventListener('astro:page-load', markDots);
+  }
+  markDots();
 </script>

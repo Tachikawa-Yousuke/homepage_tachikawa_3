@@ -37,8 +37,11 @@ a { color: inherit; text-decoration: none; }
 .marker:hover span, .marker:focus-visible span { opacity: 1; transform: none; }
 
 /* 模型が中央に来る場面（1 画面分の余白） */
-.model-stage { min-height: 100vh; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 28px; }
-.stage-hint { font-size: 13px; color: var(--muted); background: var(--panel); padding: 8px 16px; border-radius: 999px; pointer-events: none; }
+.model-stage { min-height: 100vh; position: relative; }
+.town-title { position: fixed; left: clamp(20px, 6vw, 96px); top: 30%; transform: translateY(-50%); font-size: clamp(56px, 9vw, 150px); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; color: var(--text); opacity: 0; transition: opacity .6s, transform .6s; pointer-events: none; z-index: 1; }
+.town-title .en { display: block; font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--accent2); margin-bottom: 14px; font-weight: 700; }
+.town-view .town-title { opacity: 1; transform: translateY(-50%) translateX(0); }
+@media (max-width: 900px) { .town-title { top: 16%; font-size: clamp(44px, 14vw, 80px); } }
 
 /* 上部バー: ハンバーガー ＋ ロゴ ＋ 配色 */
 .topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 30; display: flex; align-items: center; gap: 14px; padding: 12px 16px; pointer-events: none; }
@@ -51,7 +54,9 @@ a { color: inherit; text-decoration: none; }
 .nav-open .burger span { background: transparent; }
 .nav-open .burger span::before { transform: translateY(6px) rotate(45deg); }
 .nav-open .burger span::after { transform: translateY(-6px) rotate(-45deg); }
-.theme-picker { margin-left: auto; display: flex; gap: 8px; padding: 8px 10px; border-radius: 999px; background: var(--panel); backdrop-filter: blur(8px); }
+.drawer-themes { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding: 12px 10px; border-top: 1px solid var(--line); }
+.drawer-themes .en { font-size: 11px; letter-spacing: 0.2em; color: var(--muted); }
+.theme-picker { display: flex; gap: 8px; }
 .theme-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
 .theme-dot[data-theme-key="yellow"] { background: #f6c945; }
 .theme-dot[data-theme-key="navy"] { background: #1f2a44; }
@@ -75,9 +80,8 @@ a { color: inherit; text-decoration: none; }
 .drawer-foot { margin-top: auto; font-size: 13px; color: var(--muted); line-height: 1.7; }
 
 /* ページ切替 flipX */
-@keyframes flipOutX { from { transform: perspective(1400px) rotateY(0); opacity: 1; } to { transform: perspective(1400px) rotateY(-90deg); opacity: 0; } }
-@keyframes flipInX { from { transform: perspective(1400px) rotateY(90deg); opacity: 0; } to { transform: perspective(1400px) rotateY(0); opacity: 1; } }
-.flip { transform-origin: 50% 50%; }
+@keyframes slideOutUp { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-8vh); opacity: 0; } }
+@keyframes slideInUp { from { transform: translateY(100vh); opacity: 1; } to { transform: translateY(0); opacity: 1; } }
 
 /* 文章ページ */
 .subpage { background: var(--bg); background-image: radial-gradient(circle at 20% 10%, var(--bg2), transparent 55%); min-height: 100vh; }
@@ -108,8 +112,11 @@ a { color: inherit; text-decoration: none; }
 
 /* ヒーロー: 左に文章、右は模型が見えるよう空ける */
 .hero { min-height: 100vh; display: grid; align-content: center; padding: 120px 0 80px; }
-.hero .label { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
-.hero h1 { font-size: clamp(30px, 5vw, 58px); line-height: 1.3; margin: 0 0 20px; max-width: 14em; font-weight: 900; }
+.hero .lab-name { font-size: clamp(34px, 5.5vw, 64px); font-weight: 900; line-height: 1.2; margin: 0 0 6px; letter-spacing: 0.02em; }
+.hero .label { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 28px; }
+.hero .whisper { font-size: 15px; color: var(--muted); margin: 0 0 10px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.hero .whisper span { opacity: .8; }
+.hero h1 { font-size: clamp(22px, 2.6vw, 32px); line-height: 1.5; margin: 0 0 18px; max-width: 24em; font-weight: 900; }
 .hero p.lead { font-size: clamp(15px, 1.6vw, 18px); max-width: 32em; color: var(--muted); margin: 0 0 28px; }
 .hero .org { font-size: 13px; color: var(--muted); }
 .btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 700; font-size: 15px; transition: transform .15s, opacity .15s; }

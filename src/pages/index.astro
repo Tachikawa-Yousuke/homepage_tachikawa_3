@@ -5,7 +5,7 @@ import { getCollection } from 'astro:content';
 import { withBase } from '../lib/url';
 import { ClientRouter } from 'astro:transitions';
 import SiteChrome from '../components/SiteChrome.astro';
-import { flipX } from '../scripts/transitions';
+import { slideUp } from '../scripts/transitions';
 
 const research = (await getCollection('research')).sort((a, b) => a.data.order - b.data.order);
 const news = (await getCollection('news')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
@@ -60,21 +60,23 @@ const themes = [
 
     <SiteChrome />
 
-    <div class="content flip" transition:name="page" transition:animate={flipX}>
+    <div class="content flip" transition:name="page" transition:animate={slideUp}>
       <section class="hero wrap">
+        <p class="lab-name">{site.labName}</p>
         <p class="label">Mechanics for Material Design</p>
-        <h1>誰もが簡単に、<br />小さなモノづくりを。</h1>
-        <p class="lead">固体の中で原子を動かす「原子拡散」を使って、目に見えないほど小さな材料を、狙った場所に、狙った形でつくる。{site.labName}は、原子・ナノスケールのモノづくりに挑む研究室です。</p>
+        <p class="whisper">「……ほら、きたよ。」<span>「静かに。まだ気づいてない。」</span></p>
+        <h1>M2D TOWN の住人たちが、<br />そわそわしながら あなたを待っていました。</h1>
+        <p class="lead">ここは、目に見えないほど小さなものを つくる人たちの町。原子をひとつずつ動かして、まだ誰も見たことのない材料を育てています。塔のてっぺんから足元の実験室まで、どうぞゆっくり見ていってください。新しいことを始めたい人の席は、いつでも空いています。</p>
         <p style="display:flex;gap:12px;flex-wrap:wrap;margin:0 0 24px">
-          <a class="btn" href={withBase('/research')}>研究テーマを見る</a>
-          <a class="btn btn-ghost" href={site.contactFormUrl} target="_blank" rel="noopener">研究室見学を申し込む ↗</a>
+          <a class="btn" href="#town">町を歩く</a>
+          <a class="btn btn-ghost" href={site.contactFormUrl} target="_blank" rel="noopener">見学を申し込む ↗</a>
         </p>
         <p class="org">{site.university}<br />{site.labName}｜{site.labNameAlt}（{site.labNameShort}）</p>
-        <p class="hint">↓ スクロールすると 模型が中央に来ます。● を押すと各ページへ</p>
       </section>
 
-      <section class="model-stage" id="model" aria-label="模型を操作する">
-        <p class="stage-hint">ドラッグで回転。模型の ● を押すと各ページへ</p>
+      <!-- タウンビュー: 模型が中央寄り（やや右）に来て、ゆっくり自転。左に M2D TOWN -->
+      <section class="model-stage" id="town" aria-label="タウンビュー">
+        <div class="town-title" aria-hidden="true"><span class="en">Town view</span>M2D<br />TOWN</div>
       </section>
 
       <footer class="footer wrap">&copy; {new Date().getFullYear()} {site.labNameEn} / {site.universityEn}</footer>

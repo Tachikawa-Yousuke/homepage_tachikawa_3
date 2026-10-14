@@ -18,12 +18,12 @@ const THEMES = {
     device: 0xb8c0cc, deviceLight: 0x5bc96a, letter: 0x1f2a44, sign: 0xffffff,
     hemiSky: 0xcfdcff, hemiGround: 0x2a3550, sun: 0xffffff, sunI: 2.0, hemiI: 0.8, emissive: 0x000000,
   },
-  green: {    // 緑の背景に深緑の模型
-    bg: 0x5fbf7a, base: 0x1f4d3a, grain: [0x2f6b4f, 0x3a7a5a, 0x27604a, 0x45886a],
+  green: {    // 濃い緑の背景に明るい緑の模型
+    bg: 0x1f5a3a, base: 0x2f7a52, grain: [0x4fa86e, 0x5cb87a, 0x44995f, 0x6ac688],
     wire: 0xe6ebe8, wireEdge: 0xffffff, atom: 0xffd84a, electron: 0xffffff,
     person: [0xffffff, 0xffd84a, 0xff7a59], skin: 0xf2c9a0, hair: 0x3a2a1a,
     device: 0x9aa5a0, deviceLight: 0xffd84a, letter: 0x0f2a20, sign: 0xffffff,
-    hemiSky: 0xffffff, hemiGround: 0x2f6b4f, sun: 0xfff6d8, sunI: 2.1, hemiI: 0.9, emissive: 0x000000,
+    hemiSky: 0xe8ffe8, hemiGround: 0x1f5a3a, sun: 0xfff6d8, sunI: 2.1, hemiI: 0.9, emissive: 0x000000,
   },
   black: {    // 黒の背景（イメージカラー）
     bg: 0x0a0a0c, base: 0x161922, grain: [0x262b3a, 0x2d3345, 0x20242f, 0x343a4e],
@@ -152,8 +152,8 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
 
   // クリックできる目印の位置（模型のローカル座標）。index.astro 側の data-spot と対応
   const HOTSPOTS = {
-    research: [0, WIRE_H + 6, 0],        // 塔の先端 → 研究テーマ
-    publications: [WIRE_R + 0.5, 28, WIRE_R + 0.5], // 塔の中腹 → 業績
+    research: [0, WIRE_H + 6, 0, true],        // 塔の先端 → 研究テーマ（true: 塔の伸びに追従）
+    publications: [WIRE_R + 0.5, 28, WIRE_R + 0.5, true], // 塔の中腹 → 業績
     about: [-(WIRE_R + 3), 5, WIRE_R + 3], // 根元 → 研究室概要
     members: [-9, 6, 8],                   // 研究者たち → メンバー
     equipment: [13, 10, -9],               // 電子顕微鏡 → 装置・設備
@@ -173,7 +173,6 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
     const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
     wide = w > 900;
-    camera.position.set(0, 68, wide ? 150 : 200); camera.lookAt(0, 20, 0);
   }
   addEventListener('resize', resize); resize();
 
@@ -214,8 +213,15 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
     // スクロール進行 0（最上部）→ 1（1 画面分スクロール）: 模型を右側から中央へ
     const prog = Math.max(0, Math.min(1, scrollY / (innerHeight * 0.9)));
     const pe = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
-    const hx = wide ? 46 : 0, hy = wide ? -4 : -18;      // 最上部での位置（広い画面: 右寄せ）
-    world.position.set(hx * (1 - pe), hy + (-2 - hy) * pe, 0);
+    // 模型（幅約 56、高さ約 60）が収まるカメラ距離を画面比から計算する
+    const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const dVert = 32 / tanV * 1.12;                                     // 高さ基準
+    const dHoriz = (f) => 30 / (tanV * camera.aspect * f) * 1.12;       // 幅基準（f = 使える横幅の割合）
+    const dHero = Math.max(dVert, dHoriz(wide ? 0.5 : 1)), dCenter = Math.max(dVert, dHoriz(1));
+    const d = dHero + (dCenter - dHero) * pe;
+    camera.filmOffset = wide ? -camera.getFilmWidth() * 0.25 * (1 - pe) : 0;   // 右半分の中央 → 中央
+    camera.position.set(0, 22 + d * 0.36, d); camera.lookAt(0, 22, 0); camera.updateProjectionMatrix();
+    world.position.set(0, wide ? 0 : -18 * (1 - pe), 0);
     // 最上部では自転、中央に来たらドラッグのみ
     if (!dragging) {
       if (prog < 0.5 && !prefersReduced) world.rotation.y += dt * 0.25;
@@ -232,9 +238,9 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
     const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
     for (const el of markerEls) {
       const pos = HOTSPOTS[el.dataset.spot]; if (!pos) continue;
-      v3.set(pos[0], pos[1], pos[2]); world.localToWorld(v3); v3.project(camera);
+      v3.set(pos[0], pos[3] ? 2.5 + (pos[1] - 2.5) * wire.scale.y : pos[1], pos[2]); world.localToWorld(v3); v3.project(camera);
       const x = (v3.x * 0.5 + 0.5) * w, y = (-v3.y * 0.5 + 0.5) * h;
-      const visible = v3.z < 1 && prog > 0.6;
+      const visible = v3.z < 1;
       el.style.transform = `translate(${x}px, ${y}px)`;
       el.style.opacity = visible ? '1' : '0';
       el.style.pointerEvents = visible ? 'auto' : 'none';
@@ -255,5 +261,5 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
   }
   applyTheme(themeName);
   frame();
-  return { applyTheme, renderer };
+  return { applyTheme, renderer, camera, world, HOTSPOTS };
 }

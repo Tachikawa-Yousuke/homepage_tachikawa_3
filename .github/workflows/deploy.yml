@@ -31,10 +31,8 @@ jobs:
 
       - name: Configure GitHub Pages
         id: pages
+        # 事前に Settings → Pages → Source を「GitHub Actions」にしておくこと（自動有効化は権限上できない）
         uses: actions/configure-pages@v5
-        with:
-          # Pages が未設定のリポジトリでも自動で有効化する（Source: GitHub Actions）
-          enablement: true
 
       - name: Install dependencies
         run: npm install

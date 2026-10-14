@@ -21,13 +21,13 @@ const nav = [
 const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('九州大学 伊都キャンパス ウエスト4号館');
 // 模型上の目印（位置は diorama.js の HOTSPOTS と対応）
 const spots = [
-  { key: 'about', label: '研究室概要', href: withBase('/about') },
-  { key: 'research', label: '研究テーマ', href: withBase('/research') },
-  { key: 'members', label: 'メンバー', href: withBase('/members') },
-  { key: 'publications', label: '業績', href: withBase('/publications') },
-  { key: 'equipment', label: '装置・設備', href: withBase('/equipment') },
-  { key: 'join', label: '進学・配属', href: withBase('/join') },
-  { key: 'access', label: 'アクセス', href: withBase('/access') },
+  { key: 'about', en: 'About', label: '研究室概要', href: withBase('/about'), desc: site.foundedText + '。固体中の原子拡散を駆使した、原子・ナノスケールのモノづくりに挑む研究室です。' },
+  { key: 'research', en: 'Research', label: '研究テーマ', href: withBase('/research'), desc: research.length + ' つのテーマ。ナノワイヤ創製、Nano Additive Manufacturing、電子と欠陥、結晶組織デザイン。' },
+  { key: 'members', en: 'Members', label: 'メンバー', href: withBase('/members'), desc: '教員・学生 ' + members.filter((m) => m.data.group !== 'alumni').length + ' 名の小さな研究室。メンバーを募集しています。' },
+  { key: 'publications', en: 'Publications', label: '業績', href: withBase('/publications'), desc: '査読付き論文 ' + publications.length + ' 件を掲載（2024 年以降分。順次追加）。' },
+  { key: 'equipment', en: 'Apparatus', label: '装置・設備', href: withBase('/equipment'), desc: '成膜・焼結から電子顕微鏡その場観察まで、' + equipment.length + ' 点の装置。' },
+  { key: 'join', en: 'Join us', label: '進学・配属', href: withBase('/join'), desc: '研究室見学・Web 面談は随時受け付けています。学部生も大学院進学希望者も歓迎。' },
+  { key: 'access', en: 'Access', label: 'アクセス', href: withBase('/access'), desc: '伊都キャンパス ウエスト4号館 428・414・401 室。問い合わせはフォームから。' },
 ];
 const themes = [
   { key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, { key: 'green', label: '緑' }, { key: 'black', label: '黒' },
@@ -54,6 +54,7 @@ const themes = [
   <body>
     <canvas id="diorama" aria-label="一本の巨大なナノワイヤの塔の 3D 模型"></canvas>
     <noscript><div class="nojs"><p>3D 模型の表示には JavaScript が必要です。</p></div></noscript>
+    <svg class="leader" id="leader" aria-hidden="true"><path d="" /></svg>
     <div id="markers" aria-label="模型上のリンク">
       {spots.map((sp) => <a class="marker" data-spot={sp.key} href={sp.href}><i></i><span>{sp.label}</span></a>)}
     </div>
@@ -64,11 +65,10 @@ const themes = [
       <section class="hero wrap">
         <p class="lab-name">{site.labName}</p>
         <p class="label">Mechanics for Material Design</p>
-        <p class="whisper">「……ほら、きたよ。」<span>「静かに。まだ気づいてない。」</span></p>
-        <h1>M2D TOWN の住人たちが、<br />そわそわしながら あなたを待っていました。</h1>
-        <p class="lead">ここは、目に見えないほど小さなものを つくる人たちの町。原子をひとつずつ動かして、まだ誰も見たことのない材料を育てています。塔のてっぺんから足元の実験室まで、どうぞゆっくり見ていってください。新しいことを始めたい人の席は、いつでも空いています。</p>
+        <h1>誰もが簡単に、<br />小さなモノづくりを。</h1>
+        <p class="lead">原子をひとつずつ動かす。それだけで、世界のどこにもなかった材料が生まれます。{site.labName}は、小さなスケールから大きな挑戦を始める研究室です。うまくいかない日も、初めて何かが見える日も、ここにはあります。次に新しいことを始めるのは、あなたかもしれません。</p>
         <p style="display:flex;gap:12px;flex-wrap:wrap;margin:0 0 24px">
-          <a class="btn" href="#town">町を歩く</a>
+          <a class="btn" href={withBase('/research')}>研究を見る</a>
           <a class="btn btn-ghost" href={site.contactFormUrl} target="_blank" rel="noopener">見学を申し込む ↗</a>
         </p>
         <p class="org">{site.university}<br />{site.labName}｜{site.labNameAlt}（{site.labNameShort}）</p>
@@ -77,6 +77,9 @@ const themes = [
       <!-- タウンビュー: 模型が中央寄り（やや右）に来て、ゆっくり自転。左に M2D TOWN -->
       <section class="model-stage" id="town" aria-label="タウンビュー">
         <div class="town-title" aria-hidden="true"><span class="en">Town view</span>M2D<br />TOWN</div>
+        <div class="spot-panel" aria-live="polite">
+          {spots.map((sp) => <div class="spot-info" data-for={sp.key}><span class="en">{sp.en}</span><h3>{sp.label}</h3><p>{sp.desc}</p></div>)}
+        </div>
       </section>
 
       <footer class="footer wrap">&copy; {new Date().getFullYear()} {site.labNameEn} / {site.universityEn}</footer>
@@ -94,6 +97,19 @@ const themes = [
         catch (e) { console.warn('WebGL を初期化できません', e); canvas.style.display = 'none'; }
       }
       document.addEventListener('m2d:theme', (e) => { if (d) d.applyTheme(e.detail); });
+      // 目印にカーソルを合わせると、説明を出し、点線を結ぶ
+      document.addEventListener('pointerover', (e) => {
+        const m = e.target instanceof Element ? e.target.closest('.marker') : null; if (!m) return;
+        document.querySelectorAll('.marker.hover').forEach((x) => x.classList.remove('hover'));
+        document.querySelectorAll('.spot-info.on').forEach((x) => x.classList.remove('on'));
+        m.classList.add('hover');
+        const info = document.querySelector('.spot-info[data-for="' + m.dataset.spot + '"]'); if (info) info.classList.add('on');
+      });
+      document.addEventListener('pointerout', (e) => {
+        const m = e.target instanceof Element ? e.target.closest('.marker') : null; if (!m) return;
+        if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.marker') === m) return;
+        m.classList.remove('hover');
+      });
       document.addEventListener('astro:before-swap', () => { if (d) { d.dispose(); d = null; } });
       document.addEventListener('astro:page-load', init);
       init();

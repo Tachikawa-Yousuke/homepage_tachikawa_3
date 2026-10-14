@@ -272,7 +272,21 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
       const visible = v3.z < 1;
       el.style.transform = `translate(${(v3.x * 0.5 + 0.5) * w}px, ${(-v3.y * 0.5 + 0.5) * h}px)`;
       el.style.opacity = visible ? '1' : '0'; el.style.pointerEvents = visible ? 'auto' : 'none';
+      el._sx = (v3.x * 0.5 + 0.5) * w; el._sy = (-v3.y * 0.5 + 0.5) * h;
     }
+    // 点線: ホバー中の目印から、左の説明パネルの見出しへ
+    const leader = document.getElementById('leader'); if (!leader) return;
+    const active = markerEls.find((el) => el.classList.contains('hover'));
+    const info = active && document.querySelector('.spot-info[data-for="' + active.dataset.spot + '"]');
+    const town = document.body.classList.contains('town-view');
+    if (!active || !info || !town) { leader.classList.remove('on'); return; }
+    const head = info.querySelector('h3'); const r = (head || info).getBoundingClientRect();
+    const ax = r.right + 14, ay = r.top + r.height / 2;
+    const mx = active._sx, my = active._sy;
+    const cx = (ax + mx) / 2, cy = Math.min(ay, my) - 40;              // 少し上に膨らむ曲線
+    leader.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    leader.querySelector('path').setAttribute('d', `M ${ax} ${ay} Q ${cx} ${cy} ${mx} ${my}`);
+    leader.classList.add('on');
   }
 
   function applyTheme(name) {

@@ -8,9 +8,11 @@
 | パス | 内容 |
 |---|---|
 | `src/pages/index.astro` | トップ。固定表示の 3D キャンバスの上に、見出し・研究テーマ・お知らせ・数字・連絡先の各節を重ねる |
-| `src/scripts/diorama.js` | three.js の 3D シーン。台座（結晶粒の床）、六角柱のナノワイヤ、根元に集まる原子、螺旋で上る電子、研究者、電子顕微鏡、M2D の文字 |
+| `src/scripts/diorama.js` | three.js の 3D シーン。結晶粒の床と環状の道、六角柱のナノワイヤ、原子・電子、研究棟・講義棟・食堂・売店、木、研究者、キャッチボールの 2 人、塔を旋回する飛行機、電子顕微鏡、立て看板、郵便受け、M2D の文字 |
+| `src/components/SiteChrome.astro` | 共通の上部バー（ハンバーガー・ロゴ・配色）と、左から出るナビのモーダル |
+| `src/layouts/Base.astro`, `src/scripts/transitions.ts` | 文章ページの共通レイアウトと flipX のページ切替（Astro View Transitions） |
 | `public/style.css` | ページの見た目。`:root[data-theme="yellow|black"]` で配色を切替 |
-| その他のページ | 雛形のまま（研究室概要・研究テーマ・メンバー・業績・装置・進学・アクセス） |
+| その他のページ | トップと同じ配色・ナビ・パネル表示に統一 |
 
 - 3D は [three.js](https://threejs.org/)（MIT ライセンス）を npm で導入。モデルファイルや画像は使わず、すべてコードで組んでいる。
 - マウスの動きで模型が傾き、スクロールでゆっくり回る。`prefers-reduced-motion` が有効な環境では動きを止める。

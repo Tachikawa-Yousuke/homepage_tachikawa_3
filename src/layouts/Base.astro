@@ -1,32 +1,45 @@
 ---
-// 全ページ共通のレイアウト。<head>、ヘッダー、フッターをここで一括管理する。
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
+// 文章ページ共通レイアウト（トップと同じ配色・ナビ。ページ切替は flipX）
+import { ClientRouter } from 'astro:transitions';
+import SiteChrome from '../components/SiteChrome.astro';
 import site from '../data/site.json';
 import { withBase } from '../lib/url';
-import '../styles/global.css';
+import { flipX } from '../scripts/transitions';
 
-interface Props {
-  title: string;
-  description?: string;
-}
-const { title, description = site.description } = Astro.props;
-const fullTitle = `${title} | ${site.labName}`;
+interface Props { title: string; description?: string; en?: string; }
+const { title, description = site.description, en = '' } = Astro.props;
+const pageTitle = title + '｜' + site.labName + '（' + site.labNameAlt + '）';
 ---
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-theme="yellow">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{fullTitle}</title>
+    <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href={withBase('/style.css')} />
+    <script is:inline>
+      try { var th = localStorage.getItem('m2d-theme'); if (['yellow', 'navy', 'green', 'black'].indexOf(th) >= 0) document.documentElement.dataset.theme = th; } catch (e) {}
+    </script>
+    <ClientRouter />
   </head>
-  <body>
-    <Header />
-    <main class="container">
-      <slot />
-    </main>
-    <Footer />
+  <body class="subpage">
+    <SiteChrome />
+    <div class="flip" transition:name="page" transition:animate={flipX}>
+      <main class="page wrap">
+        <header class="page-head">
+          {en && <p class="label">{en}</p>}
+          <h1>{title}</h1>
+        </header>
+        <div class="panel prose">
+          <slot />
+        </div>
+      </main>
+      <footer class="footer wrap">&copy; {new Date().getFullYear()} {site.labNameEn} / {site.universityEn}</footer>
+    </div>
   </body>
 </html>

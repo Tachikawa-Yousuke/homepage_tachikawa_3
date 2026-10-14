@@ -3,6 +3,9 @@
 import site from '../data/site.json';
 import { getCollection } from 'astro:content';
 import { withBase } from '../lib/url';
+import { ClientRouter } from 'astro:transitions';
+import SiteChrome from '../components/SiteChrome.astro';
+import { flipX } from '../scripts/transitions';
 
 const research = (await getCollection('research')).sort((a, b) => a.data.order - b.data.order);
 const news = (await getCollection('news')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
@@ -46,6 +49,7 @@ const themes = [
       // テーマの初期化（描画前に反映して、ちらつきを防ぐ）
       try { var th = localStorage.getItem('m2d-theme'); if (['yellow', 'navy', 'green', 'black'].indexOf(th) >= 0) document.documentElement.dataset.theme = th; } catch (e) {}
     </script>
+    <ClientRouter />
   </head>
   <body>
     <canvas id="diorama" aria-label="一本の巨大なナノワイヤの塔の 3D 模型"></canvas>
@@ -54,15 +58,9 @@ const themes = [
       {spots.map((sp) => <a class="marker" data-spot={sp.key} href={sp.href}><i></i><span>{sp.label}</span></a>)}
     </div>
 
-    <header class="nav">
-      <a class="brand" href={withBase('/')}><b></b>M2D Lab</a>
-      <ul>{nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}</ul>
-      <div class="theme-picker" role="group" aria-label="配色">
-        {themes.map((t) => <button type="button" class="theme-dot" data-theme-key={t.key} title={'配色: ' + t.label} aria-label={'配色: ' + t.label}></button>)}
-      </div>
-    </header>
+    <SiteChrome />
 
-    <div class="content">
+    <div class="content flip" transition:name="page" transition:animate={flipX}>
       <section class="hero wrap">
         <p class="label">Mechanics for Material Design</p>
         <h1>誰もが簡単に、<br />小さなモノづくりを。</h1>
@@ -84,20 +82,19 @@ const themes = [
 
     <script>
       import { createDiorama } from '../scripts/diorama.js';
-      const canvas = document.getElementById('diorama');
-      const current = () => document.documentElement.dataset.theme || 'yellow';
       let d = null;
-      try { d = createDiorama(canvas, { themeName: current() }); window.__d = d; } catch (e) { console.warn('WebGL を初期化できません', e); canvas.style.display = 'none'; }
-      const dots = [...document.querySelectorAll('.theme-dot')];
-      const mark = () => dots.forEach((b) => b.classList.toggle('on', b.dataset.themeKey === current()));
-      dots.forEach((b) => b.addEventListener('click', () => {
-        const next = b.dataset.themeKey;
-        document.documentElement.dataset.theme = next;
-        try { localStorage.setItem('m2d-theme', next); } catch (e) {}
-        if (d) d.applyTheme(next);
-        mark();
-      }));
-      mark();
+      const current = () => document.documentElement.dataset.theme || 'yellow';
+      function init() {
+        const canvas = document.getElementById('diorama');
+        if (!canvas || canvas.dataset.ready) return;
+        canvas.dataset.ready = '1';
+        try { d = createDiorama(canvas, { themeName: current() }); window.__d = d; }
+        catch (e) { console.warn('WebGL を初期化できません', e); canvas.style.display = 'none'; }
+      }
+      document.addEventListener('m2d:theme', (e) => { if (d) d.applyTheme(e.detail); });
+      document.addEventListener('astro:before-swap', () => { if (d) { d.dispose(); d = null; } });
+      document.addEventListener('astro:page-load', init);
+      init();
     </script>
   </body>
 </html>

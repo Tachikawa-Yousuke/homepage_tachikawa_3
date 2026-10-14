@@ -4,23 +4,36 @@
 import * as THREE from 'three';
 
 const THEMES = {
-  yellow: {
-    bg: 0xf6c945, fog: 0xf6c945,
-    base: 0x2f3a5c, baseTop: 0x3c4a73, grain: [0x4a5a8a, 0x55679c, 0x3f4f80, 0x5f72a8],
+  yellow: {   // 黄の背景に紺の模型
+    bg: 0xf6c945, base: 0x2f3a5c, grain: [0x4a5a8a, 0x55679c, 0x3f4f80, 0x5f72a8],
     wire: 0xd9dde6, wireEdge: 0xffffff, atom: 0xff7a59, electron: 0x2f6fd8,
     person: [0xffffff, 0xff7a59, 0x2f6fd8], skin: 0xf2c9a0, hair: 0x3a2a1a,
-    device: 0x8a93a3, deviceLight: 0x5bc96a, letter: 0x1f2a44,
+    device: 0x8a93a3, deviceLight: 0x5bc96a, letter: 0x1f2a44, sign: 0xffffff,
     hemiSky: 0xffffff, hemiGround: 0xc8902a, sun: 0xfff2d0, sunI: 2.2, hemiI: 0.9, emissive: 0x000000,
   },
-  black: {
-    bg: 0x0a0a0c, fog: 0x0a0a0c,
-    base: 0x161922, baseTop: 0x1e2230, grain: [0x262b3a, 0x2d3345, 0x20242f, 0x343a4e],
+  navy: {     // 紺の背景に黄の模型（反転）
+    bg: 0x1f2a44, base: 0xf6c945, grain: [0xffd964, 0xf2c23a, 0xffe17a, 0xe8b52e],
+    wire: 0xe8ecf3, wireEdge: 0xffffff, atom: 0xff7a59, electron: 0x8fd3ff,
+    person: [0xffffff, 0xff7a59, 0x8fd3ff], skin: 0xf2c9a0, hair: 0x3a2a1a,
+    device: 0xb8c0cc, deviceLight: 0x5bc96a, letter: 0x1f2a44, sign: 0xffffff,
+    hemiSky: 0xcfdcff, hemiGround: 0x2a3550, sun: 0xffffff, sunI: 2.0, hemiI: 0.8, emissive: 0x000000,
+  },
+  green: {    // 緑の背景に深緑の模型
+    bg: 0x5fbf7a, base: 0x1f4d3a, grain: [0x2f6b4f, 0x3a7a5a, 0x27604a, 0x45886a],
+    wire: 0xe6ebe8, wireEdge: 0xffffff, atom: 0xffd84a, electron: 0xffffff,
+    person: [0xffffff, 0xffd84a, 0xff7a59], skin: 0xf2c9a0, hair: 0x3a2a1a,
+    device: 0x9aa5a0, deviceLight: 0xffd84a, letter: 0x0f2a20, sign: 0xffffff,
+    hemiSky: 0xffffff, hemiGround: 0x2f6b4f, sun: 0xfff6d8, sunI: 2.1, hemiI: 0.9, emissive: 0x000000,
+  },
+  black: {    // 黒の背景（イメージカラー）
+    bg: 0x0a0a0c, base: 0x161922, grain: [0x262b3a, 0x2d3345, 0x20242f, 0x343a4e],
     wire: 0xcfd4de, wireEdge: 0xffffff, atom: 0xffd84a, electron: 0x5ad6ff,
     person: [0xf4f4f4, 0xffd84a, 0x5ad6ff], skin: 0xf2c9a0, hair: 0x2a2a2a,
-    device: 0x5a6070, deviceLight: 0x5ad6ff, letter: 0xffd84a,
+    device: 0x5a6070, deviceLight: 0x5ad6ff, letter: 0xffd84a, sign: 0xf4f4f4,
     hemiSky: 0x8fa8ff, hemiGround: 0x1a1a22, sun: 0xffffff, sunI: 1.6, hemiI: 0.6, emissive: 0x111318,
   },
 };
+export const THEME_NAMES = Object.keys(THEMES);
 
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -127,17 +140,40 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
   ['M', '2', 'D'].forEach((ch, li) => FONT[ch].forEach((row, ry) => [...row].forEach((c, cx) => { if (c === '#') letters.push({ x: -8 + li * 6 + cx, y: 4.5 - ry, z: 16.5, c: t.letter }); })));
   world.add(makeVoxels(letters, 1));
 
-  // 入力（マウスで少し傾く）
-  let targetTilt = 0, targetTurn = 0, pointerX = 0, pointerY = 0;
-  addEventListener('pointermove', (e) => { pointerX = (e.clientX / innerWidth - 0.5); pointerY = (e.clientY / innerHeight - 0.5); }, { passive: true });
+  // 立て看板（進学・配属の目印）と郵便受け（アクセスの目印）
+  const signVox = [];
+  for (let y = 0; y < 3; y++) signVox.push({ x: -13, y: y + 3.5, z: 10, c: 0x8a5a2b });
+  for (let dx = -2; dx <= 2; dx++) for (let dy = 0; dy < 3; dy++) signVox.push({ x: -13 + dx, y: 6.5 + dy, z: 10, c: dy === 1 && Math.abs(dx) < 2 ? t.letter : t.sign });
+  world.add(makeVoxels(signVox, 1));
+  const boxVox = [];
+  for (let y = 0; y < 2; y++) boxVox.push({ x: 14, y: y + 3.5, z: 12, c: 0x8a93a3 });
+  for (let dx = -1; dx <= 1; dx++) for (let dy = 0; dy < 2; dy++) for (let dz = 0; dz < 2; dz++) boxVox.push({ x: 14 + dx, y: 5.5 + dy, z: 11 + dz, c: dy ? 0xff7a59 : 0xd04a2a });
+  world.add(makeVoxels(boxVox, 1));
 
+  // クリックできる目印の位置（模型のローカル座標）。index.astro 側の data-spot と対応
+  const HOTSPOTS = {
+    research: [0, WIRE_H + 6, 0],        // 塔の先端 → 研究テーマ
+    publications: [WIRE_R + 0.5, 28, WIRE_R + 0.5], // 塔の中腹 → 業績
+    about: [-(WIRE_R + 3), 5, WIRE_R + 3], // 根元 → 研究室概要
+    members: [-9, 6, 8],                   // 研究者たち → メンバー
+    equipment: [13, 10, -9],               // 電子顕微鏡 → 装置・設備
+    join: [-13, 10, 10],                   // 立て看板 → 進学・配属
+    access: [14, 8, 12],                   // 郵便受け → アクセス
+  };
+
+  // ドラッグで回転（マウス・タッチ共通）
+  let dragging = false, lastX = 0, dragVel = 0, userTurned = false;
+  canvas.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; dragVel = 0; canvas.setPointerCapture(e.pointerId); });
+  addEventListener('pointermove', (e) => { if (!dragging) return; const dx = e.clientX - lastX; lastX = e.clientX; dragVel = dx * 0.008; world.rotation.y += dragVel; userTurned = true; });
+  addEventListener('pointerup', () => { dragging = false; });
+  addEventListener('pointercancel', () => { dragging = false; });
+
+  let wide = true;
   function resize() {
     const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
-    // 広い画面では模型を右半分に寄せ、左に文章の余白を作る。狭い画面では中央・下寄り
-    const wide = w > 900;
-    world.position.set(wide ? 44 : 0, wide ? -4 : -16, 0);
-    camera.position.set(0, 68, wide ? 138 : 200); camera.lookAt(wide ? 44 : 0, 18, 0);
+    wide = w > 900;
+    camera.position.set(0, 68, wide ? 150 : 200); camera.lookAt(0, 20, 0);
   }
   addEventListener('resize', resize); resize();
 
@@ -175,13 +211,34 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
       m4.makeTranslation(Math.cos(ang) * rr, 3 + e.p * H, Math.sin(ang) * rr); elecMesh.setMatrixAt(i, m4);
     }
     elecMesh.instanceMatrix.needsUpdate = true;
-    // カメラ: ゆっくり回転 ＋ マウスで傾き ＋ スクロールで上から覗く
-    targetTurn = (prefersReduced ? 0 : time * 0.06) + pointerX * 0.35 + scrollY * 0.0012;
-    targetTilt = -pointerY * 0.12;
-    rig.rotation.y += (targetTurn - rig.rotation.y) * 0.05;
-    rig.rotation.x += (targetTilt - rig.rotation.x) * 0.05;
+    // スクロール進行 0（最上部）→ 1（1 画面分スクロール）: 模型を右側から中央へ
+    const prog = Math.max(0, Math.min(1, scrollY / (innerHeight * 0.9)));
+    const pe = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
+    const hx = wide ? 46 : 0, hy = wide ? -4 : -18;      // 最上部での位置（広い画面: 右寄せ）
+    world.position.set(hx * (1 - pe), hy + (-2 - hy) * pe, 0);
+    // 最上部では自転、中央に来たらドラッグのみ
+    if (!dragging) {
+      if (prog < 0.5 && !prefersReduced) world.rotation.y += dt * 0.25;
+      else { world.rotation.y += dragVel; dragVel *= 0.92; }
+    }
     renderer.render(scene, camera);
+    updateMarkers(prog);
     requestAnimationFrame(frame);
+  }
+
+  const markerEls = [...document.querySelectorAll('[data-spot]')];
+  const v3 = new THREE.Vector3();
+  function updateMarkers(prog) {
+    const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
+    for (const el of markerEls) {
+      const pos = HOTSPOTS[el.dataset.spot]; if (!pos) continue;
+      v3.set(pos[0], pos[1], pos[2]); world.localToWorld(v3); v3.project(camera);
+      const x = (v3.x * 0.5 + 0.5) * w, y = (-v3.y * 0.5 + 0.5) * h;
+      const visible = v3.z < 1 && prog > 0.6;
+      el.style.transform = `translate(${x}px, ${y}px)`;
+      el.style.opacity = visible ? '1' : '0';
+      el.style.pointerEvents = visible ? 'auto' : 'none';
+    }
   }
 
   function applyTheme(name) {

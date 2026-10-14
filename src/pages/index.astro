@@ -16,6 +16,19 @@ const nav = [
   { href: withBase('/publications'), label: '業績' }, { href: withBase('/equipment'), label: '装置・設備' }, { href: withBase('/join'), label: '進学・配属' }, { href: withBase('/access'), label: 'アクセス' },
 ];
 const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('九州大学 伊都キャンパス ウエスト4号館');
+// 模型上の目印（位置は diorama.js の HOTSPOTS と対応）
+const spots = [
+  { key: 'about', label: '研究室概要', href: withBase('/about') },
+  { key: 'research', label: '研究テーマ', href: withBase('/research') },
+  { key: 'members', label: 'メンバー', href: withBase('/members') },
+  { key: 'publications', label: '業績', href: withBase('/publications') },
+  { key: 'equipment', label: '装置・設備', href: withBase('/equipment') },
+  { key: 'join', label: '進学・配属', href: withBase('/join') },
+  { key: 'access', label: 'アクセス', href: withBase('/access') },
+];
+const themes = [
+  { key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, { key: 'green', label: '緑' }, { key: 'black', label: '黒' },
+];
 ---
 <!doctype html>
 <html lang="ja" data-theme="yellow">
@@ -31,17 +44,22 @@ const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURICom
     <link rel="stylesheet" href={withBase('/style.css')} />
     <script is:inline>
       // テーマの初期化（描画前に反映して、ちらつきを防ぐ）
-      try { var th = localStorage.getItem('m2d-theme'); if (th === 'black' || th === 'yellow') document.documentElement.dataset.theme = th; } catch (e) {}
+      try { var th = localStorage.getItem('m2d-theme'); if (['yellow', 'navy', 'green', 'black'].indexOf(th) >= 0) document.documentElement.dataset.theme = th; } catch (e) {}
     </script>
   </head>
   <body>
     <canvas id="diorama" aria-label="一本の巨大なナノワイヤの塔の 3D 模型"></canvas>
     <noscript><div class="nojs"><p>3D 模型の表示には JavaScript が必要です。</p></div></noscript>
+    <div id="markers" aria-label="模型上のリンク">
+      {spots.map((sp) => <a class="marker" data-spot={sp.key} href={sp.href}><i></i><span>{sp.label}</span></a>)}
+    </div>
 
     <header class="nav">
       <a class="brand" href={withBase('/')}><b></b>M2D Lab</a>
       <ul>{nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}</ul>
-      <button class="theme-btn" id="theme-btn" type="button" aria-label="配色を切り替える">配色: 黄 / 黒</button>
+      <div class="theme-picker" role="group" aria-label="配色">
+        {themes.map((t) => <button type="button" class="theme-dot" data-theme-key={t.key} title={'配色: ' + t.label} aria-label={'配色: ' + t.label}></button>)}
+      </div>
     </header>
 
     <div class="content">
@@ -54,7 +72,11 @@ const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURICom
           <a class="btn btn-ghost" href={site.contactFormUrl} target="_blank" rel="noopener">研究室見学を申し込む ↗</a>
         </p>
         <p class="org">{site.university}<br />{site.labName}｜{site.labNameAlt}（{site.labNameShort}）</p>
-        <p class="hint">模型はマウスの動きと スクロールで回ります</p>
+        <p class="hint">↓ スクロールすると 模型が中央に来ます</p>
+      </section>
+
+      <section class="model-stage" id="model" aria-label="模型を操作する">
+        <p class="stage-hint">ドラッグで回転。模型の ● を押すと各ページへ</p>
       </section>
 
       <section class="section wrap" id="symbol">
@@ -121,12 +143,16 @@ const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURICom
       const current = () => document.documentElement.dataset.theme || 'yellow';
       let d = null;
       try { d = createDiorama(canvas, { themeName: current() }); } catch (e) { console.warn('WebGL を初期化できません', e); canvas.style.display = 'none'; }
-      document.getElementById('theme-btn').addEventListener('click', () => {
-        const next = current() === 'yellow' ? 'black' : 'yellow';
+      const dots = [...document.querySelectorAll('.theme-dot')];
+      const mark = () => dots.forEach((b) => b.classList.toggle('on', b.dataset.themeKey === current()));
+      dots.forEach((b) => b.addEventListener('click', () => {
+        const next = b.dataset.themeKey;
         document.documentElement.dataset.theme = next;
         try { localStorage.setItem('m2d-theme', next); } catch (e) {}
         if (d) d.applyTheme(next);
-      });
+        mark();
+      }));
+      mark();
     </script>
   </body>
 </html>

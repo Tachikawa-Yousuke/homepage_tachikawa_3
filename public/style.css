@@ -3,6 +3,14 @@
   --bg: #f6c945; --bg2: #ffd964; --text: #1f2a44; --muted: #5a5f6e; --accent: #2f6fd8; --accent2: #ff7a59;
   --panel: rgba(255,255,255,0.88); --line: rgba(31,42,68,0.15);
 }
+:root[data-theme="navy"] {
+  --bg: #1f2a44; --bg2: #26325a; --text: #ffd964; --muted: #cfd6ea; --accent: #ffd964; --accent2: #ff7a59;
+  --panel: rgba(31,42,68,0.86); --line: rgba(255,217,100,0.25);
+}
+:root[data-theme="green"] {
+  --bg: #5fbf7a; --bg2: #6fcf8a; --text: #0f2a20; --muted: #2f4a3f; --accent: #0f2a20; --accent2: #ffd84a;
+  --panel: rgba(255,255,255,0.86); --line: rgba(15,42,32,0.18);
+}
 :root[data-theme="black"] {
   --bg: #0a0a0c; --bg2: #141418; --text: #f4f4f8; --muted: #a0a4b4; --accent: #ffd84a; --accent2: #5ad6ff;
   --panel: rgba(20,20,26,0.82); --line: rgba(255,255,255,0.14);
@@ -13,9 +21,24 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: "Noto 
 a { color: inherit; text-decoration: none; }
 .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
 
-/* 3D キャンバス: 画面に固定し、文章がその上を流れる */
-#diorama { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; }
-.content { position: relative; z-index: 1; }
+/* 3D キャンバス: 画面に固定し、文章がその上を流れる。横ドラッグで回転、縦はページのスクロール */
+#diorama { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; touch-action: pan-y; cursor: grab; }
+#diorama:active { cursor: grabbing; }
+/* 文章の層は、文字やボタンの上以外ではポインタを通して模型を操作できるようにする */
+.content { position: relative; z-index: 1; pointer-events: none; }
+.content a, .content button, .content .panel, .hero h1, .hero p, .nav { pointer-events: auto; }
+
+/* 模型上の目印 */
+#markers { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+.marker { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; transform: translate(-100px, -100px); opacity: 0; transition: opacity .3s; margin: -14px 0 0 -14px; }
+.marker i { width: 28px; height: 28px; border-radius: 50%; background: var(--text); border: 3px solid var(--bg); box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: grid; place-items: center; }
+.marker i::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--bg); }
+.marker span { background: var(--text); color: var(--bg); font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; opacity: .92; transition: transform .2s; }
+.marker:hover span, .marker:focus span { opacity: 1; transform: scale(1.06); }
+
+/* 模型が中央に来る場面（1 画面分の余白） */
+.model-stage { min-height: 100vh; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 28px; }
+.stage-hint { font-size: 13px; color: var(--muted); background: var(--panel); padding: 8px 16px; border-radius: 999px; pointer-events: none; }
 
 /* ナビ */
 .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; gap: 12px; }
@@ -24,7 +47,13 @@ a { color: inherit; text-decoration: none; }
 .nav ul { list-style: none; margin: 0; padding: 8px 14px; display: flex; gap: 18px; font-size: 14px; background: var(--panel); border-radius: 999px; backdrop-filter: blur(8px); }
 .nav li a { padding: 4px 2px; border-bottom: 2px solid transparent; }
 .nav li a:hover { border-bottom-color: var(--accent); }
-.theme-btn { font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--text); cursor: pointer; }
+.theme-picker { display: flex; gap: 8px; padding: 8px 10px; border-radius: 999px; background: var(--panel); backdrop-filter: blur(8px); }
+.theme-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+.theme-dot[data-theme-key="yellow"] { background: #f6c945; }
+.theme-dot[data-theme-key="navy"] { background: #1f2a44; }
+.theme-dot[data-theme-key="green"] { background: #5fbf7a; }
+.theme-dot[data-theme-key="black"] { background: #0a0a0c; }
+.theme-dot.on { outline: 3px solid var(--accent2); outline-offset: 1px; }
 @media (max-width: 900px) { .nav ul { display: none; } }
 
 /* ヒーロー: 左に文章、右は模型が見えるよう空ける */

@@ -5,7 +5,6 @@ import { getCollection } from 'astro:content';
 import { withBase } from '../lib/url';
 import { ClientRouter } from 'astro:transitions';
 import SiteChrome from '../components/SiteChrome.astro';
-import { slideUp } from '../scripts/transitions';
 
 const research = (await getCollection('research')).sort((a, b) => a.data.order - b.data.order);
 const news = (await getCollection('news')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
@@ -61,16 +60,17 @@ const themes = [
 
     <SiteChrome />
 
-    <div class="content flip" transition:name="page" transition:animate={slideUp}>
-      <section class="hero wrap">
-        <p class="lab-name">{site.labName}</p>
-        <p class="label">Mechanics for Material Design</p>
-        <h1>誰もが簡単に、<br />小さなモノづくりを。</h1>
-        <p class="lead">原子をひとつずつ動かす。それだけで、世界のどこにもなかった材料が生まれます。{site.labName}は、小さなスケールから大きな挑戦を始める研究室です。うまくいかない日も、初めて何かが見える日も、ここにはあります。次に新しいことを始めるのは、あなたかもしれません。</p>
-        <p style="display:flex;gap:12px;flex-wrap:wrap;margin:0 0 24px">
-          <a class="btn" href={withBase('/research')}>研究を見る</a>
-          <a class="btn btn-ghost" href={site.contactFormUrl} target="_blank" rel="noopener">見学を申し込む ↗</a>
-        </p>
+    <div class="content">
+      <!-- エントランスビュー: 左に文章、右に模型（少し文章にかかる大きさ） -->
+      <section class="hero wrap" id="entrance">
+        <div class="hero-top">
+          <p class="lab-name">{site.labName}</p>
+          <p class="label">Mechanics for Material Design</p>
+        </div>
+        <div class="hero-mid">
+          <h1>誰もが簡単に、<br />小さなモノづくりを。</h1>
+          <p class="lead">原子をひとつずつ動かす。それだけで、世界のどこにもなかった材料が生まれます。{site.labName}は、小さなスケールから大きな挑戦を始める研究室です。うまくいかない日も、初めて何かが見える日も、ここにはあります。次に新しいことを始めるのは、あなたかもしれません。</p>
+        </div>
         <p class="org">{site.university}<br />{site.labName}｜{site.labNameAlt}（{site.labNameShort}）</p>
       </section>
 

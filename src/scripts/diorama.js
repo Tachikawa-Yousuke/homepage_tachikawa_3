@@ -204,7 +204,7 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
   const HALF_W = 38, HALF_H = 34, CENTER_Y = 18;
   const timer = new THREE.Timer();
   const m4 = new THREE.Matrix4();
-  let alive = true, lastTown = false;
+  let alive = true, lastTown = null;
   function frame() {
     if (!alive) return;
     timer.update();
@@ -243,11 +243,12 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
     const dVert = HALF_H / tanV * 1.08;
     const dHoriz = (f) => HALF_W / (tanV * camera.aspect * f) * 1.08;
     // 最上部（ヒーロー）: 右半分に収まる距離。タウンビュー: 画面を大きく使い、やや右寄せで少しはみ出す
-    const dHero = Math.max(dVert, dHoriz(wide ? 0.5 : 1));
+    // エントランスビュー: 右寄りだが大きめで、左の文章領域に少しかかる。タウンビュー: 画面を大きく使い、やや右寄せ
+    const dHero = Math.max(dVert, dHoriz(wide ? 0.64 : 1)) * (wide ? 0.95 : 1);
     const dTown = Math.max(dVert, dHoriz(wide ? 0.8 : 1)) * (wide ? 0.86 : 0.95);
     const d = dHero + (dTown - dHero) * pe;
     const fw = camera.getFilmWidth();
-    camera.filmOffset = wide ? -fw * (0.25 * (1 - pe) + 0.12 * pe) : 0;
+    camera.filmOffset = wide ? -fw * (0.19 * (1 - pe) + 0.12 * pe) : 0;
     camera.position.set(0, CENTER_Y + d * 0.36, d); camera.lookAt(0, CENTER_Y, 0); camera.updateProjectionMatrix();
     world.position.set(0, wide ? 0 : -20 * (1 - pe), 0);
     // 自転: ヒーローではやや速く、タウンビューではゆっくり。ドラッグ中は止め、離すと惰性のあと再開
@@ -256,7 +257,13 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
       world.rotation.y += dt * spin + dragVel; dragVel *= 0.92;
     }
     const town = prog > 0.55;
-    if (town !== lastTown) { lastTown = town; document.body.classList.toggle('town-view', town); }
+    if (town !== lastTown) {
+      lastTown = town;
+      document.body.classList.toggle('town-view', town); document.body.classList.toggle('entrance-view', !town);
+      if (!town) {   // エントランスに戻ったら、目印の説明と点線を消す
+        document.querySelectorAll('.marker.hover, .spot-info.on').forEach((el) => el.classList.remove('hover', 'on'));
+      }
+    }
     renderer.render(scene, camera);
     updateMarkers();
     requestAnimationFrame(frame);

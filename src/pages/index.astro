@@ -1,0 +1,132 @@
+---
+// トップ: 一本の巨大なナノワイヤの塔（3D ジオラマ）の上に文章を重ねる。テーマは黄 / 黒を切替。
+import site from '../data/site.json';
+import { getCollection } from 'astro:content';
+import { withBase } from '../lib/url';
+
+const research = (await getCollection('research')).sort((a, b) => a.data.order - b.data.order);
+const news = (await getCollection('news')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
+const publications = await getCollection('publications');
+const equipment = await getCollection('equipment');
+const members = await getCollection('members');
+const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '.');
+const pageTitle = site.labName + '｜' + site.labNameAlt + ' - ' + site.universityEn;
+const nav = [
+  { href: withBase('/about'), label: '研究室概要' }, { href: withBase('/research'), label: '研究テーマ' }, { href: withBase('/members'), label: 'メンバー' },
+  { href: withBase('/publications'), label: '業績' }, { href: withBase('/equipment'), label: '装置・設備' }, { href: withBase('/join'), label: '進学・配属' }, { href: withBase('/access'), label: 'アクセス' },
+];
+const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('九州大学 伊都キャンパス ウエスト4号館');
+---
+<!doctype html>
+<html lang="ja" data-theme="yellow">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={site.description} />
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href={withBase('/style.css')} />
+    <script is:inline>
+      // テーマの初期化（描画前に反映して、ちらつきを防ぐ）
+      try { var th = localStorage.getItem('m2d-theme'); if (th === 'black' || th === 'yellow') document.documentElement.dataset.theme = th; } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <canvas id="diorama" aria-label="一本の巨大なナノワイヤの塔の 3D 模型"></canvas>
+    <noscript><div class="nojs"><p>3D 模型の表示には JavaScript が必要です。</p></div></noscript>
+
+    <header class="nav">
+      <a class="brand" href={withBase('/')}><b></b>M2D Lab</a>
+      <ul>{nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}</ul>
+      <button class="theme-btn" id="theme-btn" type="button" aria-label="配色を切り替える">配色: 黄 / 黒</button>
+    </header>
+
+    <div class="content">
+      <section class="hero wrap">
+        <p class="label">Mechanics for Material Design</p>
+        <h1>誰もが簡単に、<br />小さなモノづくりを。</h1>
+        <p class="lead">固体の中で原子を動かす「原子拡散」を使って、目に見えないほど小さな材料を、狙った場所に、狙った形でつくる。{site.labName}は、原子・ナノスケールのモノづくりに挑む研究室です。</p>
+        <p style="display:flex;gap:12px;flex-wrap:wrap;margin:0 0 24px">
+          <a class="btn" href={withBase('/research')}>研究テーマを見る</a>
+          <a class="btn btn-ghost" href={site.contactFormUrl} target="_blank" rel="noopener">研究室見学を申し込む ↗</a>
+        </p>
+        <p class="org">{site.university}<br />{site.labName}｜{site.labNameAlt}（{site.labNameShort}）</p>
+        <p class="hint">模型はマウスの動きと スクロールで回ります</p>
+      </section>
+
+      <section class="section wrap" id="symbol">
+        <div class="panel">
+          <div class="sec-head"><h2>この模型について</h2><span>Symbol</span></div>
+          <p>塔のようにそびえるのは、一本の金属ナノワイヤです。人の髪の千分の一ほどの太さしかない材料を、床を這う原子（橙の粒）が根元に集まって押し上げる。当研究室の「原子拡散に基づく金属ナノワイヤ創製」を、そのまま模型にしました。足元の床は、大きさの異なる結晶粒の分布を表しています。</p>
+          <p class="en">The tower is a single metal nanowire, grown bottom-up by atoms diffusing across a crystalline substrate.</p>
+        </div>
+      </section>
+
+      <section class="section wrap">
+        <div class="panel">
+          <div class="sec-head"><h2>研究テーマ</h2><span>Research</span></div>
+          <ul class="grid">
+            {research.map((r, i) => (
+              <li class="card"><h3>{String(i + 1).padStart(2, '0')}　{r.data.title}</h3><p>{r.data.summary}</p><a href={withBase('/research/' + r.id)}>くわしく →</a></li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section class="section wrap">
+        <div class="two">
+          <div class="panel">
+            <div class="sec-head"><h2>お知らせ</h2><span>News</span></div>
+            <ul style="list-style:none;padding:0;margin:0">{news.map((n) => <li style="padding:8px 0;border-bottom:1px solid var(--line)"><span class="en">{fmt(n.data.date)}</span><br />{n.data.title}</li>)}</ul>
+          </div>
+          <div class="panel">
+            <div class="sec-head"><h2>研究室の数字</h2><span>At a glance</span></div>
+            <ul class="grid" style="grid-template-columns:repeat(2,1fr)">
+              <li class="card"><h3>{research.length}</h3><p>研究テーマ</p></li>
+              <li class="card"><h3>{members.filter((m) => m.data.group !== 'alumni').length}</h3><p>教員・学生</p></li>
+              <li class="card"><h3>{publications.length}</h3><p>査読付き論文（2024 年以降掲載分）</p></li>
+              <li class="card"><h3>{equipment.length}</h3><p>装置・設備</p></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section wrap" id="contact">
+        <div class="panel two">
+          <div>
+            <div class="sec-head"><h2>アクセス・連絡先</h2><span>Contact</span></div>
+            <address>
+              〒{site.postalCode} {site.address}<br />{site.university}<br />{site.rooms}<br />
+              <span class="en">{site.labNameEn}<br />{site.universityEn}</span>
+            </address>
+            <p><a class="btn btn-ghost" href={mapUrl} target="_blank" rel="noopener">地図を開く ↗</a></p>
+          </div>
+          <div>
+            <div class="sec-head"><h2>見学・相談</h2><span>Join us</span></div>
+            <p>研究室見学・Web 面談は随時受け付けています。材料が好き、ナノに興味がある、原子を見たい。一つでも当てはまる方はお気軽にどうぞ。</p>
+            <p><a class="btn" href={site.contactFormUrl} target="_blank" rel="noopener">問い合わせフォーム ↗</a>　<a class="btn btn-ghost" href={withBase('/join')}>進学・配属希望の方へ</a></p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer wrap">&copy; {new Date().getFullYear()} {site.labNameEn} / {site.universityEn}</footer>
+    </div>
+
+    <script>
+      import { createDiorama } from '../scripts/diorama.js';
+      const canvas = document.getElementById('diorama');
+      const current = () => document.documentElement.dataset.theme || 'yellow';
+      let d = null;
+      try { d = createDiorama(canvas, { themeName: current() }); } catch (e) { console.warn('WebGL を初期化できません', e); canvas.style.display = 'none'; }
+      document.getElementById('theme-btn').addEventListener('click', () => {
+        const next = current() === 'yellow' ? 'black' : 'yellow';
+        document.documentElement.dataset.theme = next;
+        try { localStorage.setItem('m2d-theme', next); } catch (e) {}
+        if (d) d.applyTheme(next);
+      });
+    </script>
+  </body>
+</html>

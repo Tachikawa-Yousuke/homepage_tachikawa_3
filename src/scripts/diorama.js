@@ -41,6 +41,23 @@ export const SEASONS = {
   winter: { canopy: [0xffffff, 0xf2f6fb, 0xe6edf5, 0xffffff], bare: true, density: 0.45, ground: [0xf4f7fb, 0xe9eef5, 0xffffff, 0xeef2f8], particle: 0xffffff, pCount: 260, pSize: 0.4, fall: 1.2, drift: 0.9 },
 };
 export const SEASON_NAMES = Object.keys(SEASONS);
+// 大木の様式（形）。trunk: 幹、branches: 枝、canopy: 樹冠を作る楕円体の集合（cut より下は切る）
+export const TREE_STYLES = {
+  umbrella: { label: '丸い傘（現行）', trunk: { r: 3.6, h: 20 }, branches: { n: 9, len: 17, y0: 13, y1: 23 }, canopy: [{ rx: 23, ry: 10, rz: 23, cy: 27, cut: 22 }] },
+  flat:     { label: '平たい傘（写真寄り）', trunk: { r: 3.9, h: 22 }, branches: { n: 12, len: 24, y0: 12, y1: 24 }, canopy: [{ rx: 29, ry: 7, rz: 29, cy: 27, cut: 23 }] },
+  layered:  { label: '段々の樹冠', trunk: { r: 3.4, h: 30 }, branches: { n: 8, len: 20, y0: 12, y1: 20 }, canopy: [{ rx: 25, ry: 5, rz: 25, cy: 22, cut: 19 }, { rx: 18, ry: 5, rz: 18, cy: 29, cut: 26 }, { rx: 11, ry: 5, rz: 11, cy: 35, cut: 32 }] },
+  round:    { label: '丸い玉（絵本風）', trunk: { r: 3.0, h: 18 }, branches: { n: 5, len: 8, y0: 10, y1: 17 }, canopy: [{ rx: 17, ry: 15, rz: 17, cy: 29, cut: 17 }] },
+  lumpy:    { label: '雲のような塊', trunk: { r: 3.6, h: 20 }, branches: { n: 9, len: 16, y0: 12, y1: 24 }, canopy: 'tips' },
+  weeping:  { label: 'しだれ', trunk: { r: 3.4, h: 22 }, branches: { n: 10, len: 18, y0: 14, y1: 26 }, canopy: [{ rx: 22, ry: 8, rz: 22, cy: 29, cut: 25 }], strands: true },
+  // 冬（葉なし）: 枝の本数と枝分かれの段数が違う 3 案。sub = 1 本の枝から出る小枝の数、twig = 小枝の先の細枝の数
+  winter_a: { label: '冬A: 枝 9 本・小枝 2', bare: true, trunk: { r: 3.6, h: 20 }, branches: { n: 9, len: 18, y0: 13, y1: 24, sub: 2, twig: 0 }, canopy: [] },
+  winter_b: { label: '冬B: 枝 14 本・小枝 3・細枝 2', bare: true, trunk: { r: 3.6, h: 20 }, branches: { n: 14, len: 20, y0: 12, y1: 25, sub: 3, twig: 2 }, canopy: [] },
+  winter_c: { label: '冬C: 枝 20 本・小枝 3・細枝 3', bare: true, trunk: { r: 3.8, h: 22 }, branches: { n: 20, len: 22, y0: 12, y1: 27, sub: 3, twig: 3 }, canopy: [] },
+};
+// 季節ごとに使う様式（ユーザー選定: 春 = 丸い玉、夏 = 段々、秋 = 丸い傘、冬 = 冬B）
+export const SEASON_STYLE = { spring: 'round', summer: 'layered', autumn: 'umbrella', winter: 'winter_b' };
+export const TREE_STYLE_NAMES = Object.keys(TREE_STYLES);
+
 export function seasonForDate(d = new Date()) { const m = d.getMonth() + 1; return m <= 2 || m === 12 ? 'winter' : m <= 5 ? 'spring' : m <= 8 ? 'summer' : 'autumn'; }
 
 
@@ -133,53 +150,88 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   }
   const edge = new THREE.Mesh(new THREE.BoxGeometry(N * 2 + 2, 1, N * 2 + 2), new THREE.MeshLambertMaterial({ color: t.base })); edge.position.y = -3; edge.receiveShadow = true; world.add(edge);
 
-  // ---- 大木（傘状の広葉樹）。幹・枝は固定、葉（樹冠）と雪は季節で作り直す ----
-  const TREE_H = 40;                                   // 樹冠の最上部の高さ（目印の位置計算にも使う）
+  // ---- 大木。様式（TREE_STYLES）で幹・枝・樹冠の形が変わり、葉と雪は季節で作り直す ----
+  let TREE_H = 40;                                     // 樹冠の最上部の高さ（目印の位置計算にも使う）
   const bigTree = new THREE.Group(); world.add(bigTree);
-  const trunkVox = [];
-  // 幹: 根元が太く上へ細くなる
-  for (let y = 0; y < 20; y++) {
-    const r = y < 3 ? 3.6 : 3.2 - y * 0.06;
-    for (let i = -4; i <= 4; i++) for (let k = -4; k <= 4; k++) if (i * i + k * k <= r * r) trunkVox.push({ x: i, y: y + 0.5, z: k, c: (i + k + y) % 5 === 0 ? 0x5a3a22 : 0x6b4a2b });
-  }
-  // 枝: 幹の上部から放射状に伸び、傘の内側を支える
-  const branchTips = [];
-  for (let n = 0; n < 9; n++) {
-    const ang = (n / 9) * Math.PI * 2 + 0.3, len = 17 + (n % 3) * 3;
-    const y0 = 13 + (n % 2) * 3, y1 = 23 + (n % 3) * 2;
-    for (let st = 0; st <= 24; st++) {
-      const u = st / 24, r = u * len, y = y0 + (y1 - y0) * Math.sin(u * Math.PI / 2);
-      const x = Math.cos(ang) * r, z = Math.sin(ang) * r;
-      trunkVox.push({ x: Math.round(x), y: Math.round(y) + 0.5, z: Math.round(z), c: 0x5a3a22 });
-      if (u > 0.3 && st % 2 === 0) trunkVox.push({ x: Math.round(x + Math.cos(ang + 1.57) * 1), y: Math.round(y) + 0.5, z: Math.round(z + Math.sin(ang + 1.57) * 1), c: 0x5a3a22 });
-    }
-    branchTips.push([Math.cos(ang) * len, y1, Math.sin(ang) * len]);
-  }
-  bigTree.add(makeVoxels(trunkVox, 1));
+  const trunkHolder = new THREE.Group(); bigTree.add(trunkHolder);
   const canopyHolder = new THREE.Group(); bigTree.add(canopyHolder);
-  // 樹冠: 横に広い楕円体を下側で切った傘形。表面の層だけを置き、縁はまばらにして葉のまとまりを出す
-  const canopyCells = [];
-  const RX = 23, RY = 10, RZ = 23, CY = 27, CUT = 22;
-  const inside = (x, y, z) => ((x * x) / (RX * RX) + ((y - CY) * (y - CY)) / (RY * RY) + (z * z) / (RZ * RZ)) <= 1 && y >= CUT;
-  for (let x = -RX; x <= RX; x++) for (let y = CUT; y <= CY + RY; y++) for (let z = -RZ; z <= RZ; z++) {
-    if (!inside(x, y, z)) continue;
-    const shell = !(inside(x + 1, y, z) && inside(x - 1, y, z) && inside(x, y + 1, z) && inside(x, y - 1, z) && inside(x, y, z + 1) && inside(x, y, z - 1));
-    const shell2 = !(inside(x + 2, y, z) && inside(x - 2, y, z) && inside(x, y + 2, z) && inside(x, y - 2, z) && inside(x, y, z + 2) && inside(x, y, z - 2));
-    if (!shell2) continue;                                          // 厚さ 2 の表面だけ
-    const n = Math.sin(x * 0.7) * Math.cos(z * 0.6) * Math.sin(y * 0.9);
-    canopyCells.push({ x, y: y + 0.5, z, edge: shell, n, top: y >= CY + RY - 2 });
+  let trunkVox = [], canopyCells = [], treeStyle = TREE_STYLES.umbrella, CANOPY_RX = 23, CANOPY_CUT = 22;
+  function buildTreeShape(style) {
+    treeStyle = style; trunkVox = []; canopyCells = [];
+    // 幹: 根元が太く上へ細くなる
+    for (let y = 0; y < style.trunk.h; y++) {
+      const r = y < 3 ? style.trunk.r : style.trunk.r - 0.4 - y * 0.05;
+      for (let i = -5; i <= 5; i++) for (let k = -5; k <= 5; k++) if (i * i + k * k <= r * r) trunkVox.push({ x: i, y: y + 0.5, z: k, c: (i + k + y) % 5 === 0 ? 0x5a3a22 : 0x6b4a2b });
+    }
+    // 枝: 幹の上部から放射状に伸び、樹冠の内側を支える。冬の様式では小枝・細枝も生やす
+    const tips = [];
+    const B = style.branches;
+    const stroke = (x0, y0, z0, ang, len, rise, steps, thick) => {   // 1 本の枝を描いて先端を返す
+      let ex = x0, ey = y0, ez = z0;
+      for (let st = 0; st <= steps; st++) {
+        const u = st / steps, r = u * len, y = y0 + rise * Math.sin(u * Math.PI / 2);
+        ex = x0 + Math.cos(ang) * r; ez = z0 + Math.sin(ang) * r; ey = y;
+        trunkVox.push({ x: Math.round(ex), y: Math.round(ey) + 0.5, z: Math.round(ez), c: 0x5a3a22 });
+        if (thick && u > 0.3 && st % 2 === 0) trunkVox.push({ x: Math.round(ex + Math.cos(ang + 1.57)), y: Math.round(ey) + 0.5, z: Math.round(ez + Math.sin(ang + 1.57)), c: 0x5a3a22 });
+      }
+      return [ex, ey, ez];
+    };
+    for (let n = 0; n < B.n; n++) {
+      const ang = (n / B.n) * Math.PI * 2 + 0.3, len = B.len + (n % 3) * 3;
+      const y0 = B.y0 + (n % 2) * 3, y1 = B.y1 + (n % 3) * 2;
+      const tip = stroke(0, y0, 0, ang, len, y1 - y0, 28, true);
+      tips.push(tip);
+      for (let j = 0; j < (B.sub || 0); j++) {                        // 小枝: 枝の途中から左右交互に
+        const u0 = 0.4 + j * 0.2, sx = Math.cos(ang) * len * u0, sz = Math.sin(ang) * len * u0, sy = y0 + (y1 - y0) * Math.sin(u0 * Math.PI / 2);
+        const a2 = ang + (j % 2 ? 0.7 : -0.7) + (n % 2) * 0.2;
+        const t2 = stroke(sx, sy, sz, a2, len * 0.45, 5 + j * 2, 14, false);
+        for (let k = 0; k < (B.twig || 0); k++) {                     // 細枝: 小枝の先から上向きに
+          const a3 = a2 + (k - 1) * 0.6;
+          stroke(t2[0], t2[1], t2[2], a3, 4 + k, 3 + k, 6, false);
+        }
+      }
+    }
+    trunkHolder.clear(); trunkHolder.add(makeVoxels(trunkVox, 1));
+    // 樹冠: 楕円体の集合。表面の層だけを置き、縁はまばらにして葉のまとまりを出す
+    const blobs = style.canopy === 'tips'
+      ? [...tips.map(([x, y, z], i) => ({ cx: x * 0.85, cy: y + 4, cz: z * 0.85, rx: 8 + (i % 3), ry: 7 + (i % 2), rz: 8 + ((i + 1) % 3), cut: 0 })), { cx: 0, cy: 33, cz: 0, rx: 11, ry: 8, rz: 11, cut: 0 }]
+      : style.canopy.map((e) => ({ cx: 0, cz: 0, ...e }));
+    const inside = (x, y, z) => blobs.some((e) => y >= e.cut && ((x - e.cx) ** 2) / (e.rx * e.rx) + ((y - e.cy) ** 2) / (e.ry * e.ry) + ((z - e.cz) ** 2) / (e.rz * e.rz) <= 1);
+    let minX = 99, maxX = -99, minY = 99, maxY = -99, minZ = 99, maxZ = -99;
+    if (blobs.length === 0) { const top = Math.max(...trunkVox.map((v) => v.y)); minX = -B.len; maxX = B.len; minY = top; maxY = top; }
+    blobs.forEach((e) => { minX = Math.min(minX, e.cx - e.rx); maxX = Math.max(maxX, e.cx + e.rx); minY = Math.min(minY, Math.max(e.cut, e.cy - e.ry)); maxY = Math.max(maxY, e.cy + e.ry); minZ = Math.min(minZ, e.cz - e.rz); maxZ = Math.max(maxZ, e.cz + e.rz); });
+    for (let x = Math.floor(minX); x <= Math.ceil(maxX); x++) for (let y = Math.floor(minY); y <= Math.ceil(maxY); y++) for (let z = Math.floor(minZ); z <= Math.ceil(maxZ); z++) {
+      if (!inside(x, y, z)) continue;
+      const shell = !(inside(x + 1, y, z) && inside(x - 1, y, z) && inside(x, y + 1, z) && inside(x, y - 1, z) && inside(x, y, z + 1) && inside(x, y, z - 1));
+      const shell2 = !(inside(x + 2, y, z) && inside(x - 2, y, z) && inside(x, y + 2, z) && inside(x, y - 2, z) && inside(x, y, z + 2) && inside(x, y, z - 2));
+      if (!shell2) continue;
+      const n = Math.sin(x * 0.7) * Math.cos(z * 0.6) * Math.sin(y * 0.9);
+      canopyCells.push({ x, y: y + 0.5, z, edge: shell, n, top: y >= maxY - 2 });
+    }
+    // しだれ: 樹冠の縁から垂れ下がる葉の筋
+    if (style.strands) {
+      for (let n = 0; n < 40; n++) {
+        const ang = (n / 40) * Math.PI * 2, r = 20 + (n % 3);
+        const x = Math.round(Math.cos(ang) * r), z = Math.round(Math.sin(ang) * r), len = 10 + (n * 7) % 9;
+        for (let y = 25; y > 25 - len; y--) if ((y + n) % 3 !== 0) canopyCells.push({ x, y: y + 0.5, z, edge: true, n: 0.3, top: false, strand: true });
+      }
+    }
+    TREE_H = maxY; CANOPY_RX = maxX; CANOPY_CUT = Math.round(minY);
+    HOTSPOTS.research[1] = TREE_H + 2;
+    buildCanopy();
   }
   function buildCanopy() {
     canopyHolder.clear();
-    const cells = canopyCells.filter((c) => {
-      if (season.bare) return c.top || c.n > 0.45;                  // 冬: 上面の雪と、枝先に残る雪の塊だけ
-      return c.n > -0.55 * season.density - 0.3;                     // 縁をまばらに
-    });
-    const v = cells.map((c, i) => ({ x: c.x, y: c.y, z: c.z, c: season.canopy[(i * 7 + Math.abs(c.x) + Math.abs(c.z)) % season.canopy.length] }));
-    if (season.bare) {                                              // 冬: 枝の上に雪を乗せる
-      trunkVox.forEach((tv, i) => { if (tv.y > 12 && i % 2 === 0) v.push({ x: tv.x, y: tv.y + 1, z: tv.z, c: 0xffffff }); });
+    const v = [];
+    if (season.bare) {
+      // 雪: 幹・枝のボクセルのうち、真上が空いている面に白を乗せる
+      const occ = new Set(trunkVox.map((t) => `${t.x},${Math.round(t.y - 0.5)},${t.z}`));
+      trunkVox.forEach((tv) => { const y = Math.round(tv.y - 0.5); if (y > 2 && !occ.has(`${tv.x},${y + 1},${tv.z}`)) v.push({ x: tv.x, y: tv.y + 1, z: tv.z, c: 0xffffff }); });
+    } else {
+      const cells = canopyCells.filter((c) => c.n > -0.55 * season.density - 0.3);
+      cells.forEach((c, i) => v.push({ x: c.x, y: c.y, z: c.z, c: season.canopy[(i * 7 + Math.abs(c.x) + Math.abs(c.z)) % season.canopy.length] }));
     }
-    canopyHolder.add(makeVoxels(v, 1));
+    if (v.length) canopyHolder.add(makeVoxels(v, 1));
   }
   // 舞う粒子（花びら・葉・雪）
   const PMAX = 300;
@@ -187,9 +239,9 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   particleMesh.count = PMAX; world.add(particleMesh);
   const particles = Array.from({ length: PMAX }, () => ({ x: 0, y: -10, z: 0, vx: 0, vz: 0, w: Math.random() * 6.28, life: 0 }));
   function respawn(pt) {
-    const ang = Math.random() * 6.28, r = Math.random() * (season.bare ? 30 : RX);
+    const ang = Math.random() * 6.28, r = Math.random() * (season.bare ? 30 : CANOPY_RX);
     pt.x = Math.cos(ang) * r; pt.z = Math.sin(ang) * r;
-    pt.y = season.bare ? 44 + Math.random() * 10 : CUT + Math.random() * 10;
+    pt.y = season.bare ? 44 + Math.random() * 10 : CANOPY_CUT + Math.random() * 10;
     pt.vx = (Math.random() - 0.5) * 0.6; pt.vz = (Math.random() - 0.5) * 0.6; pt.w = Math.random() * 6.28; pt.life = 1;
   }
   function buildParticles() { particleMesh.material.color.set(season.particle); particleMesh.geometry.dispose(); particleMesh.geometry = new THREE.BoxGeometry(season.pSize, season.pSize * 0.6, season.pSize); particles.forEach((pt, i) => { pt.life = 0; pt.y = -10; }); }
@@ -235,7 +287,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
 
   // ---- クリックできる目印（模型のローカル座標）。4 つ目が true なら塔の伸びに追従 ----
   const HOTSPOTS = {
-    research: [0, TREE_H + 2, 0, true],   // 樹冠のてっぺん（木の成長に追従）
+    research: [0, 42, 0, true],           // 樹冠のてっぺん（高さは buildTreeShape が更新）
     publications: [12, 24, 9, true],       // 枝の上
     about: [-17, 8, -16],                   // 研究棟の屋上
     members: [-5, 6, 18],                   // キャッチボールの間
@@ -364,12 +416,28 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     for (const th of themed) { th.holder.clear(); th.fn(t).forEach((m) => th.holder.add(m)); }
     plane.clear(); plane.add(makeVoxels(planeVox.map((p) => ({ ...p, c: p.k === 'nose' ? 0x303030 : p.k === 'accent' ? t.planeAccent : t.plane })), 0.7));
   }
-  function applySeason(name) {
-    season = SEASONS[name] || SEASONS.autumn;
-    buildGround(); buildCanopy(); buildParticles();
+  let seasonKey = seasonName;
+  function applySeason(name, styleName) {
+    seasonKey = SEASONS[name] ? name : 'autumn';
+    season = SEASONS[seasonKey];
+    buildGround(); buildParticles();
+    buildTreeShape(TREE_STYLES[styleName || SEASON_STYLE[seasonKey]] || TREE_STYLES.umbrella);   // 中で buildCanopy も走る
+  }
+  function applyTreeStyle(name) { buildTreeShape(TREE_STYLES[name] || TREE_STYLES.umbrella); }
+  // 画像の書き出し（確認用）: 木を正面から収めた 1 枚を JPEG の data URL で返す
+  function capture(w = 1200, h = 800, dist = 125, lookY = 22) {
+    const saved = { pos: camera.position.clone(), fo: camera.filmOffset, aspect: camera.aspect, rot: world.rotation.y, size: renderer.getSize(new THREE.Vector2()), pr: renderer.getPixelRatio() };
+    renderer.setPixelRatio(1); renderer.setSize(w, h, false); camera.aspect = w / h; camera.filmOffset = 0;
+    camera.position.set(0, lookY + dist * 0.42, dist); camera.lookAt(0, lookY, 0); camera.updateProjectionMatrix();
+    const savedScale = bigTree.scale.x; bigTree.scale.setScalar(1);        // 成木の大きさで写す
+    renderer.render(scene, camera);
+    bigTree.scale.setScalar(savedScale);
+    const url = renderer.domElement.toDataURL('image/jpeg', 0.9);
+    renderer.setPixelRatio(saved.pr); renderer.setSize(saved.size.x, saved.size.y, false); camera.aspect = saved.aspect; camera.filmOffset = saved.fo; camera.position.copy(saved.pos); camera.updateProjectionMatrix();
+    return url;
   }
   applyTheme(themeName); applySeason(seasonName);
   frame();
   function dispose() { alive = false; renderer.dispose(); }
-  return { applyTheme, applySeason, dispose, renderer, camera, world, HOTSPOTS };
+  return { applyTheme, applySeason, applyTreeStyle, capture, dispose, renderer, camera, world, HOTSPOTS, TREE_STYLES, SEASON_STYLE };
 }

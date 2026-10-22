@@ -33,12 +33,21 @@ const THEMES = {
 };
 export const THEME_NAMES = Object.keys(THEMES);
 
+// 季節: 大木の葉と地面、舞う粒子
+export const SEASONS = {
+  spring: { canopy: [0xf7b6d2, 0xf49ac1, 0xfde2ec, 0xf28cb8], bare: false, density: 1.0, ground: [0x8cd65a, 0x7ac44a, 0x98de68, 0x86cc56], particle: 0xfbc8dc, pCount: 220, pSize: 0.5, fall: 1.6, drift: 1.2 },
+  summer: { canopy: [0x2e8b3d, 0x3fa34a, 0x55b85a, 0x237a33], bare: false, density: 1.0, ground: [0x6fbf47, 0x5fae3c, 0x7fcc55, 0x66b542], particle: 0x9ad66a, pCount: 40, pSize: 0.35, fall: 1.0, drift: 0.8 },
+  autumn: { canopy: [0xe0522f, 0xf08a24, 0xf2b53a, 0xc7391f], bare: false, density: 0.92, ground: [0xb9c25a, 0xa8b24c, 0xc6cc66, 0xb0b854], particle: 0xf08a24, pCount: 180, pSize: 0.5, fall: 2.0, drift: 1.6 },
+  winter: { canopy: [0xffffff, 0xf2f6fb, 0xe6edf5, 0xffffff], bare: true, density: 0.45, ground: [0xf4f7fb, 0xe9eef5, 0xffffff, 0xeef2f8], particle: 0xffffff, pCount: 260, pSize: 0.4, fall: 1.2, drift: 0.9 },
+};
+export const SEASON_NAMES = Object.keys(SEASONS);
+export function seasonForDate(d = new Date()) { const m = d.getMonth() + 1; return m <= 2 || m === 12 ? 'winter' : m <= 5 ? 'spring' : m <= 8 ? 'summer' : 'autumn'; }
+
+
 // MagicaVoxel などで作った部品の差し替え設定。public/models/<name>.obj（＋ .mtl ＋ .png）があれば読み込む。
 //  attach: 'wire' = ナノワイヤの塔（成長アニメーションに追従）/ 'world' = 街の中の固定物
 //  height: 塔の高さに合わせて拡大縮小（attach:'wire' のとき）。scale: そのままの倍率（attach:'world' のとき）
-export const MODELS = [
-  { name: 'nanowire', attach: 'wire', height: 48 },
-];
+export const MODELS = [];
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- 部品 ----------
@@ -86,8 +95,9 @@ function tree(t, x, z, s = 1) {
   return v;
 }
 
-export function createDiorama(canvas, { themeName = 'yellow', base = '/' } = {}) {
+export function createDiorama(canvas, { themeName = 'yellow', seasonName = seasonForDate(), base = '/' } = {}) {
   let t = THEMES[themeName] || THEMES.yellow;
+  let season = SEASONS[seasonName] || SEASONS.autumn;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -107,75 +117,82 @@ export function createDiorama(canvas, { themeName = 'yellow', base = '/' } = {})
   const themed = [];                              // テーマで色が変わる InstancedMesh の組み立て関数
   const addThemed = (fn) => { const holder = new THREE.Group(); world.add(holder); themed.push({ holder, fn }); };
 
-  // ---- 台座（結晶粒の床）＋ 環状の道 ----
+  // ---- 台座（芝生の広場）＋ 環状の道。地面の色は季節で変わる ----
   const N = 26;
-  addThemed((t) => {
-    const v = [];
-    for (let gx = -N; gx < N; gx++) for (let gz = -N; gz < N; gz++) {
-      const cx = gx + 0.5, cz = gz + 0.5, d = Math.hypot(cx, cz);
-      const grain = Math.floor((Math.sin(gx * 0.9) + Math.cos(gz * 1.1) + Math.sin((gx + gz) * 0.5)) * 1.5 + 4) % t.grain.length;
-      const h = d < 6 ? 2 : d < 11 ? 1 : 0;
-      const road = Math.abs(d - 15.5) < 1.3 || (Math.abs(cx) < 1.3 && d > 15) || (Math.abs(cz) < 1.3 && d > 15);
-      for (let y = -2; y <= h; y++) v.push({ x: cx, y: y + 0.5, z: cz, c: y === h ? (road && h === 0 ? t.road : t.grain[grain]) : t.base });
-    }
-    return [makeVoxels(v, 1)];
-  });
+  const groundVox = [];
+  for (let gx = -N; gx < N; gx++) for (let gz = -N; gz < N; gz++) {
+    const cx = gx + 0.5, cz = gz + 0.5, d = Math.hypot(cx, cz);
+    const gi = Math.floor((Math.sin(gx * 0.9) + Math.cos(gz * 1.1) + Math.sin((gx + gz) * 0.5)) * 1.5 + 4) % 4;
+    const road = Math.abs(d - 15.5) < 1.3 || (Math.abs(cx) < 1.3 && d > 15) || (Math.abs(cz) < 1.3 && d > 15);
+    for (let y = -2; y <= 0; y++) groundVox.push({ x: cx, y: y + 0.5, z: cz, top: y === 0, road, gi });
+  }
+  const groundHolder = new THREE.Group(); world.add(groundHolder);
+  function buildGround() {
+    groundHolder.clear();
+    groundHolder.add(makeVoxels(groundVox.map((v) => ({ ...v, c: v.top ? (v.road ? t.road : season.ground[v.gi]) : t.base })), 1));
+  }
   const edge = new THREE.Mesh(new THREE.BoxGeometry(N * 2 + 2, 1, N * 2 + 2), new THREE.MeshLambertMaterial({ color: t.base })); edge.position.y = -3; edge.receiveShadow = true; world.add(edge);
 
-  // ---- ナノワイヤの塔 ----
-  const WIRE_H = 48, WIRE_R = 3.2;
-  const wireGeo = new THREE.CylinderGeometry(WIRE_R * 0.92, WIRE_R, WIRE_H, 6, 1, false); wireGeo.translate(0, WIRE_H / 2, 0);
-  const wireMat = new THREE.MeshStandardMaterial({ color: t.wire, metalness: 0.25, roughness: 0.45, flatShading: true, emissive: t.emissive });
-  const wire = new THREE.Mesh(wireGeo, wireMat); wire.castShadow = true; wire.position.y = 2.5; world.add(wire);
-  const capGeo = new THREE.CylinderGeometry(0, WIRE_R * 0.92, 4, 6); capGeo.translate(0, WIRE_H + 2, 0);
-  const cap = new THREE.Mesh(capGeo, wireMat); wire.add(cap);
-  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(wireGeo, 20), new THREE.LineBasicMaterial({ color: t.wireEdge, transparent: true, opacity: 0.35 })); wire.add(edges);
-  // ---- 差し替え部品の読み込み（ファイルが無ければ何もしない） ----
-  const modelDir = base.replace(/\/$/, '') + '/models/';
-  for (const m of MODELS) {
-    const url = modelDir + m.name + '.obj';
-    fetch(url, { method: 'HEAD' }).then((r) => { if (!r.ok) return;
-      const mtl = new MTLLoader().setPath(modelDir);
-      mtl.load(m.name + '.mtl', (materials) => {
-        materials.preload();
-        const obj = new OBJLoader().setMaterials(materials).setPath(modelDir);
-        obj.load(m.name + '.obj', (group) => placeModel(m, group), undefined, (e) => console.warn('model load failed', m.name, e));
-      }, undefined, () => {
-        // .mtl が無い場合は色なしで読み込む
-        new OBJLoader().setPath(modelDir).load(m.name + '.obj', (group) => placeModel(m, group));
-      });
-    }).catch(() => {});
+  // ---- 大木（傘状の広葉樹）。幹・枝は固定、葉（樹冠）と雪は季節で作り直す ----
+  const TREE_H = 40;                                   // 樹冠の最上部の高さ（目印の位置計算にも使う）
+  const bigTree = new THREE.Group(); world.add(bigTree);
+  const trunkVox = [];
+  // 幹: 根元が太く上へ細くなる
+  for (let y = 0; y < 20; y++) {
+    const r = y < 3 ? 3.6 : 3.2 - y * 0.06;
+    for (let i = -4; i <= 4; i++) for (let k = -4; k <= 4; k++) if (i * i + k * k <= r * r) trunkVox.push({ x: i, y: y + 0.5, z: k, c: (i + k + y) % 5 === 0 ? 0x5a3a22 : 0x6b4a2b });
   }
-  function placeModel(m, group) {
-    group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material && o.material.map) o.material.map.colorSpace = THREE.SRGBColorSpace; } });
-    let box = new THREE.Box3().setFromObject(group); const size = new THREE.Vector3(); box.getSize(size);
-    // MagicaVoxel は Z が上。書き出し設定によっては縦長の塔が横倒しになるので、高さ方向が最長になるよう起こす
-    if (m.attach === 'wire' && size.y < size.z) { group.rotation.x = -Math.PI / 2; group.updateMatrixWorld(true); box = new THREE.Box3().setFromObject(group); box.getSize(size); }
-    const center = new THREE.Vector3(); box.getCenter(center);
-    if (m.attach === 'wire') {
-      const k = (m.height || WIRE_H) / size.y;                       // 塔の高さに合わせる
-      group.scale.setScalar(k);
-      group.position.set(-center.x * k, -box.min.y * k, -center.z * k); // 底面を y=0、中心を軸に
-      wire.material.visible = false; edges.visible = false; cap.visible = false;   // コード描画の塔を隠す
-      wire.add(group);
-    } else {
-      const k = m.scale || 1;
-      group.scale.setScalar(k);
-      group.position.set((m.x || 0) - center.x * k, -box.min.y * k + (m.y || 0), (m.z || 0) - center.z * k);
-      world.add(group);
+  // 枝: 幹の上部から放射状に伸び、傘の内側を支える
+  const branchTips = [];
+  for (let n = 0; n < 9; n++) {
+    const ang = (n / 9) * Math.PI * 2 + 0.3, len = 17 + (n % 3) * 3;
+    const y0 = 13 + (n % 2) * 3, y1 = 23 + (n % 3) * 2;
+    for (let st = 0; st <= 24; st++) {
+      const u = st / 24, r = u * len, y = y0 + (y1 - y0) * Math.sin(u * Math.PI / 2);
+      const x = Math.cos(ang) * r, z = Math.sin(ang) * r;
+      trunkVox.push({ x: Math.round(x), y: Math.round(y) + 0.5, z: Math.round(z), c: 0x5a3a22 });
+      if (u > 0.3 && st % 2 === 0) trunkVox.push({ x: Math.round(x + Math.cos(ang + 1.57) * 1), y: Math.round(y) + 0.5, z: Math.round(z + Math.sin(ang + 1.57) * 1), c: 0x5a3a22 });
     }
+    branchTips.push([Math.cos(ang) * len, y1, Math.sin(ang) * len]);
   }
-  const rootGeo = new THREE.CylinderGeometry(WIRE_R + 2.5, WIRE_R + 4, 2, 6); rootGeo.translate(0, 1, 0);
-  const root = new THREE.Mesh(rootGeo, new THREE.MeshLambertMaterial({ color: t.grain[1] })); root.position.y = 2.5; root.castShadow = true; world.add(root);
-
-  // ---- 原子・電子 ----
-  const ATOMS = 180;
-  const atomMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.42, 8, 6), new THREE.MeshLambertMaterial({ color: t.atom }), ATOMS); atomMesh.castShadow = true; world.add(atomMesh);
-  const atoms = Array.from({ length: ATOMS }, () => ({ a: Math.random() * Math.PI * 2, r: 6 + Math.random() * 12, s: 0.6 + Math.random() * 0.8, w: Math.random() * Math.PI * 2 }));
-  const ELEC = 70;
-  const elecMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(0.28, 6, 5), new THREE.MeshBasicMaterial({ color: t.electron }), ELEC); world.add(elecMesh);
-  const elecs = Array.from({ length: ELEC }, (_, i) => ({ p: i / ELEC, a: Math.random() * Math.PI * 2 }));
-
+  bigTree.add(makeVoxels(trunkVox, 1));
+  const canopyHolder = new THREE.Group(); bigTree.add(canopyHolder);
+  // 樹冠: 横に広い楕円体を下側で切った傘形。表面の層だけを置き、縁はまばらにして葉のまとまりを出す
+  const canopyCells = [];
+  const RX = 23, RY = 10, RZ = 23, CY = 27, CUT = 22;
+  const inside = (x, y, z) => ((x * x) / (RX * RX) + ((y - CY) * (y - CY)) / (RY * RY) + (z * z) / (RZ * RZ)) <= 1 && y >= CUT;
+  for (let x = -RX; x <= RX; x++) for (let y = CUT; y <= CY + RY; y++) for (let z = -RZ; z <= RZ; z++) {
+    if (!inside(x, y, z)) continue;
+    const shell = !(inside(x + 1, y, z) && inside(x - 1, y, z) && inside(x, y + 1, z) && inside(x, y - 1, z) && inside(x, y, z + 1) && inside(x, y, z - 1));
+    const shell2 = !(inside(x + 2, y, z) && inside(x - 2, y, z) && inside(x, y + 2, z) && inside(x, y - 2, z) && inside(x, y, z + 2) && inside(x, y, z - 2));
+    if (!shell2) continue;                                          // 厚さ 2 の表面だけ
+    const n = Math.sin(x * 0.7) * Math.cos(z * 0.6) * Math.sin(y * 0.9);
+    canopyCells.push({ x, y: y + 0.5, z, edge: shell, n, top: y >= CY + RY - 2 });
+  }
+  function buildCanopy() {
+    canopyHolder.clear();
+    const cells = canopyCells.filter((c) => {
+      if (season.bare) return c.top || c.n > 0.45;                  // 冬: 上面の雪と、枝先に残る雪の塊だけ
+      return c.n > -0.55 * season.density - 0.3;                     // 縁をまばらに
+    });
+    const v = cells.map((c, i) => ({ x: c.x, y: c.y, z: c.z, c: season.canopy[(i * 7 + Math.abs(c.x) + Math.abs(c.z)) % season.canopy.length] }));
+    if (season.bare) {                                              // 冬: 枝の上に雪を乗せる
+      trunkVox.forEach((tv, i) => { if (tv.y > 12 && i % 2 === 0) v.push({ x: tv.x, y: tv.y + 1, z: tv.z, c: 0xffffff }); });
+    }
+    canopyHolder.add(makeVoxels(v, 1));
+  }
+  // 舞う粒子（花びら・葉・雪）
+  const PMAX = 300;
+  const particleMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff }), PMAX);
+  particleMesh.count = PMAX; world.add(particleMesh);
+  const particles = Array.from({ length: PMAX }, () => ({ x: 0, y: -10, z: 0, vx: 0, vz: 0, w: Math.random() * 6.28, life: 0 }));
+  function respawn(pt) {
+    const ang = Math.random() * 6.28, r = Math.random() * (season.bare ? 30 : RX);
+    pt.x = Math.cos(ang) * r; pt.z = Math.sin(ang) * r;
+    pt.y = season.bare ? 44 + Math.random() * 10 : CUT + Math.random() * 10;
+    pt.vx = (Math.random() - 0.5) * 0.6; pt.vz = (Math.random() - 0.5) * 0.6; pt.w = Math.random() * 6.28; pt.life = 1;
+  }
+  function buildParticles() { particleMesh.material.color.set(season.particle); particleMesh.geometry.dispose(); particleMesh.geometry = new THREE.BoxGeometry(season.pSize, season.pSize * 0.6, season.pSize); particles.forEach((pt, i) => { pt.life = 0; pt.y = -10; }); }
   // ---- 街: 建物・木・人・装置・看板・郵便受け・文字 ----
   addThemed((t) => {
     const v = [
@@ -218,8 +235,8 @@ export function createDiorama(canvas, { themeName = 'yellow', base = '/' } = {})
 
   // ---- クリックできる目印（模型のローカル座標）。4 つ目が true なら塔の伸びに追従 ----
   const HOTSPOTS = {
-    research: [0, WIRE_H + 6, 0, true],
-    publications: [WIRE_R + 0.5, 28, WIRE_R + 0.5, true],
+    research: [0, TREE_H + 2, 0, true],   // 樹冠のてっぺん（木の成長に追従）
+    publications: [12, 24, 9, true],       // 枝の上
     about: [-17, 8, -16],                   // 研究棟の屋上
     members: [-5, 6, 18],                   // キャッチボールの間
     equipment: [12, 8, -8],                 // 電子顕微鏡
@@ -253,26 +270,24 @@ export function createDiorama(canvas, { themeName = 'yellow', base = '/' } = {})
     if (!alive) return;
     timer.update();
     const dt = Math.min(0.05, timer.getDelta()), time = timer.getElapsed();
-    const growth = prefersReduced ? 1 : Math.min(1, time / 18);
+    // 大木: 苗から 3 秒で育つ
+    const growth = prefersReduced ? 1 : Math.min(1, time / 3);
     const ease = 1 - Math.pow(1 - growth, 3);
-    wire.scale.y = 0.08 + 0.92 * ease;
-    // 原子
-    for (let i = 0; i < ATOMS; i++) {
-      const a = atoms[i];
-      if (!prefersReduced) { a.r -= dt * a.s * 2.5; a.a += dt * 0.15 * Math.sin(a.w + time); }
-      if (a.r < WIRE_R + 1.2) { a.r = 10 + Math.random() * 9; a.a = Math.random() * Math.PI * 2; }
-      const x = Math.cos(a.a) * a.r, z = Math.sin(a.a) * a.r, d = Math.hypot(x, z);
-      m4.makeTranslation(x, (d < 6 ? 3 : d < 11 ? 2 : 1) + 2.0 + Math.sin(time * 6 + a.w) * 0.08, z); atomMesh.setMatrixAt(i, m4);
+    bigTree.scale.setScalar(0.15 + 0.85 * ease);
+    canopyHolder.rotation.y = Math.sin(time * 0.4) * 0.01;          // 風でわずかに揺れる
+    // 舞う粒子: 樹冠（冬は空）から落ち、地面で消えて再出現
+    let alivePts = 0;
+    for (let i = 0; i < PMAX; i++) {
+      const pt = particles[i];
+      if (i < season.pCount && pt.life <= 0 && Math.random() < 0.02) respawn(pt);
+      if (pt.life > 0 && !prefersReduced) {
+        pt.y -= dt * season.fall * (0.8 + 0.4 * Math.sin(pt.w)); pt.x += (pt.vx + Math.sin(time * 1.3 + pt.w) * 0.6) * dt * season.drift; pt.z += (pt.vz + Math.cos(time * 1.1 + pt.w) * 0.6) * dt * season.drift;
+        if (pt.y < 1) pt.life = 0;
+      }
+      if (pt.life > 0) { alivePts++; m4.makeRotationY(time + pt.w); m4.setPosition(pt.x, pt.y, pt.z); } else m4.makeTranslation(0, -50, 0);
+      particleMesh.setMatrixAt(i, m4);
     }
-    atomMesh.instanceMatrix.needsUpdate = true;
-    // 電子
-    const H = WIRE_H * wire.scale.y;
-    for (let i = 0; i < ELEC; i++) {
-      const e = elecs[i]; if (!prefersReduced) e.p = (e.p + dt * 0.12) % 1;
-      const ang = e.a + e.p * Math.PI * 6 + time * 0.3, rr = WIRE_R + 1.6;
-      m4.makeTranslation(Math.cos(ang) * rr, 3 + e.p * H, Math.sin(ang) * rr); elecMesh.setMatrixAt(i, m4);
-    }
-    elecMesh.instanceMatrix.needsUpdate = true;
+    particleMesh.instanceMatrix.needsUpdate = true;
     // キャッチボール: 2 人の間を放物線で往復
     const T = 2.2, ph = (time % (2 * T)) / T, u = ph < 1 ? ph : 2 - ph;
     ball.position.set(-10 + 10 * u, 3 + Math.sin(u * Math.PI) * 4, 18);
@@ -319,7 +334,8 @@ export function createDiorama(canvas, { themeName = 'yellow', base = '/' } = {})
     const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || innerHeight;
     for (const el of markerEls) {
       const pos = HOTSPOTS[el.dataset.spot]; if (!pos) continue;
-      v3.set(pos[0], pos[3] ? 2.5 + (pos[1] - 2.5) * wire.scale.y : pos[1], pos[2]); world.localToWorld(v3); v3.project(camera);
+      if (pos[3]) v3.set(pos[0] * bigTree.scale.x, pos[1] * bigTree.scale.y, pos[2] * bigTree.scale.z); else v3.set(pos[0], pos[1], pos[2]);
+      world.localToWorld(v3); v3.project(camera);
       const visible = v3.z < 1;
       el.style.transform = `translate(${(v3.x * 0.5 + 0.5) * w}px, ${(-v3.y * 0.5 + 0.5) * h}px)`;
       el.style.opacity = visible ? '1' : '0'; el.style.pointerEvents = visible ? 'auto' : 'none';
@@ -344,13 +360,16 @@ export function createDiorama(canvas, { themeName = 'yellow', base = '/' } = {})
     t = THEMES[name] || THEMES.yellow;
     scene.background = new THREE.Color(t.bg); scene.fog = new THREE.Fog(t.bg, 160, 320);
     hemi.color.set(t.hemiSky); hemi.groundColor.set(t.hemiGround); hemi.intensity = t.hemiI; sun.color.set(t.sun); sun.intensity = t.sunI;
-    wireMat.color.set(t.wire); wireMat.emissive.set(t.emissive); edges.material.color.set(t.wireEdge);
-    atomMesh.material.color.set(t.atom); elecMesh.material.color.set(t.electron); edge.material.color.set(t.base); root.material.color.set(t.grain[1]);
+    edge.material.color.set(t.base); buildGround();
     for (const th of themed) { th.holder.clear(); th.fn(t).forEach((m) => th.holder.add(m)); }
     plane.clear(); plane.add(makeVoxels(planeVox.map((p) => ({ ...p, c: p.k === 'nose' ? 0x303030 : p.k === 'accent' ? t.planeAccent : t.plane })), 0.7));
   }
-  applyTheme(themeName);
+  function applySeason(name) {
+    season = SEASONS[name] || SEASONS.autumn;
+    buildGround(); buildCanopy(); buildParticles();
+  }
+  applyTheme(themeName); applySeason(seasonName);
   frame();
   function dispose() { alive = false; renderer.dispose(); }
-  return { applyTheme, dispose, renderer, camera, world, HOTSPOTS };
+  return { applyTheme, applySeason, dispose, renderer, camera, world, HOTSPOTS };
 }

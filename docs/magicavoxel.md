@@ -1,7 +1,9 @@
-# MagicaVoxel で部品を作って差し替える
+# 外部ツールで部品を作って差し替える（任意）
 
-3D 模型の部品（まずはナノワイヤの塔）を MagicaVoxel で作り、サイトに読み込む手順。
-MagicaVoxel は無料のボクセル編集ソフトで、この Mac には導入済み（アプリケーションフォルダ、または Spotlight で「MagicaVoxel」）。
+> 2026-10-22 時点: 大木はコード描画で作ることになり、MagicaVoxel は Homebrew から入れられない（配布停止）ことが判明したため、この手順は**保留**。
+> 将来、Goxel などで部品を作る場合も、OBJ 形式で `public/models/` に置けば同じ仕組みで読み込める。
+
+3D 模型の部品を MagicaVoxel（または互換の Goxel）で作り、サイトに読み込む手順。
 
 ## 1. 新しいモデルを作る
 
@@ -16,14 +18,14 @@ MagicaVoxel は無料のボクセル編集ソフトで、この Mac には導入
 ## 2. 書き出す（Export）
 
 1. 右側のパネル下部にある **Export** を開き、**obj** を押す。
-2. 保存先を `Documents/claude/hp-competition/homepage_tachikawa_3/public/models/`、ファイル名を **`nanowire`** にする。
-3. `nanowire.obj`・`nanowire.mtl`・`nanowire.png` の 3 つが書き出される。3 つとも同じフォルダに置く（色は png に入っている）。
+2. 保存先を `Documents/claude/hp-competition/homepage_tachikawa_3/public/models/`、ファイル名を `MODELS` に書いた `name` にする。
+3. `<name>.obj`・`<name>.mtl`・`<name>.png` の 3 つが書き出される。3 つとも同じフォルダに置く（色は png に入っている）。
 
 ## 3. 確認する
 
 - Claude に「ナノワイヤを読み込んで確認して」と頼めば、ビルドして表示を確認する。
 - 自分で見る場合: GitHub Desktop でコミット・Push すると、2〜3 分後に公開サイトに反映される。
-- `public/models/nanowire.obj` が無いときは、これまでのコード描画の塔が表示される（壊れることはない）。
+- 対応する `.obj` が無いときは、コード描画の部品がそのまま表示される（壊れることはない）。
 
 ## 4. 他の部品も差し替えたいとき
 
@@ -31,7 +33,7 @@ MagicaVoxel は無料のボクセル編集ソフトで、この Mac には導入
 
 ```js
 export const MODELS = [
-  { name: 'nanowire', attach: 'wire', height: 48 },            // 塔（成長アニメーション付き）
+  { name: 'bigtree', attach: 'wire', height: 40 },             // 大木を丸ごと置き換える（成長アニメーション付き）
   { name: 'building', attach: 'world', scale: 1, x: -17, z: -16 }, // 街の中の固定物（例）
 ];
 ```

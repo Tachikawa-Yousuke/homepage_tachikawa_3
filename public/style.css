@@ -70,6 +70,9 @@ a { color: inherit; text-decoration: none; }
 .drawer-themes { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding: 12px 10px; border-top: 1px solid var(--line); }
 .drawer-themes .en { font-size: 11px; letter-spacing: 0.2em; color: var(--muted); }
 .theme-picker { display: flex; gap: 8px; }
+.season-picker { display: flex; gap: 6px; }
+.season-btn { font: inherit; font-size: 13px; font-weight: 700; width: 36px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
+.season-btn.on { background: var(--text); color: var(--bg); }
 .theme-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
 .theme-dot[data-theme-key="yellow"] { background: #f6c945; }
 .theme-dot[data-theme-key="navy"] { background: #1f2a44; }

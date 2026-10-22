@@ -13,6 +13,7 @@ const nav = [
   { href: withBase('/access'), label: 'アクセス', en: 'Access' },
 ];
 const themes = [{ key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, { key: 'green', label: '緑' }, { key: 'black', label: '黒' }];
+const seasons = [{ key: 'spring', label: '春' }, { key: 'summer', label: '夏' }, { key: 'autumn', label: '秋' }, { key: 'winter', label: '冬' }];
 ---
 <header class="topbar">
   <button class="burger" id="burger" type="button" aria-label="メニューを開く" aria-expanded="false" aria-controls="drawer"><span></span></button>
@@ -26,6 +27,12 @@ const themes = [{ key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, 
   <ul>
     {nav.map((n) => <li><a href={n.href}><span class="en">{n.en}</span>{n.label}</a></li>)}
   </ul>
+  <div class="drawer-themes">
+    <span class="en">季節</span>
+    <div class="season-picker" role="group" aria-label="季節">
+      {seasons.map((sn) => <button type="button" class="season-btn" data-season-key={sn.key}>{sn.label}</button>)}
+    </div>
+  </div>
   <div class="drawer-themes">
     <span class="en">配色</span>
     <div class="theme-picker" role="group" aria-label="配色">
@@ -45,7 +52,18 @@ const themes = [{ key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, 
     markDots();
     document.dispatchEvent(new CustomEvent('m2d:theme', { detail: name }));
   }
-  function markDots() { document.querySelectorAll('.theme-dot').forEach((b) => b.classList.toggle('on', b.dataset.themeKey === current())); }
+  function markDots() {
+    document.querySelectorAll('.theme-dot').forEach((b) => b.classList.toggle('on', b.dataset.themeKey === current()));
+    document.querySelectorAll('.season-btn').forEach((b) => b.classList.toggle('on', b.dataset.seasonKey === currentSeason()));
+  }
+  const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+  function seasonForDate() { const m = new Date().getMonth() + 1; return m <= 2 || m === 12 ? 'winter' : m <= 5 ? 'spring' : m <= 8 ? 'summer' : 'autumn'; }
+  function currentSeason() { let sv = null; try { sv = localStorage.getItem('m2d-season'); } catch (e) {} return SEASONS.includes(sv) ? sv : seasonForDate(); }
+  function setSeason(name) {
+    try { localStorage.setItem('m2d-season', name); } catch (e) {}
+    markDots();
+    document.dispatchEvent(new CustomEvent('m2d:season', { detail: name }));
+  }
   function setOpen(on) {
     const burger = document.getElementById('burger'), drawer = document.getElementById('drawer');
     document.body.classList.toggle('nav-open', on);
@@ -59,6 +77,7 @@ const themes = [{ key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, 
       if (el.closest('#burger')) { setOpen(!document.body.classList.contains('nav-open')); return; }
       if (el.closest('#drawer-close') || el.closest('#shade') || el.closest('#drawer a')) { setOpen(false); }
       const dot = el.closest('.theme-dot'); if (dot) setTheme(dot.dataset.themeKey);
+      const sb = el.closest('.season-btn'); if (sb) setSeason(sb.dataset.seasonKey);
     });
     addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
     // ページ切替後: 保存した配色を再適用し、メニューは閉じた状態に

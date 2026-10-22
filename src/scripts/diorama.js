@@ -35,10 +35,10 @@ export const THEME_NAMES = Object.keys(THEMES);
 
 // 季節: 大木の葉と地面、舞う粒子
 export const SEASONS = {
-  spring: { canopy: [0xf7b6d2, 0xf49ac1, 0xfde2ec, 0xf28cb8], bare: false, density: 1.0, ground: [0x8cd65a, 0x7ac44a, 0x98de68, 0x86cc56], particle: 0xfbc8dc, pCount: 220, pSize: 0.5, fall: 1.6, drift: 1.2 },
-  summer: { canopy: [0x2e8b3d, 0x3fa34a, 0x55b85a, 0x237a33], bare: false, density: 1.0, ground: [0x6fbf47, 0x5fae3c, 0x7fcc55, 0x66b542], particle: 0x9ad66a, pCount: 40, pSize: 0.35, fall: 1.0, drift: 0.8 },
-  autumn: { canopy: [0xe0522f, 0xf08a24, 0xf2b53a, 0xc7391f], bare: false, density: 0.92, ground: [0xb9c25a, 0xa8b24c, 0xc6cc66, 0xb0b854], particle: 0xf08a24, pCount: 180, pSize: 0.5, fall: 2.0, drift: 1.6 },
-  winter: { canopy: [0xffffff, 0xf2f6fb, 0xe6edf5, 0xffffff], bare: true, density: 0.45, ground: [0xf4f7fb, 0xe9eef5, 0xffffff, 0xeef2f8], particle: 0xffffff, pCount: 260, pSize: 0.4, fall: 1.2, drift: 0.9 },
+  spring: { canopy: [0xf7b6d2, 0xf49ac1, 0xfde2ec, 0xf28cb8], small: [0xf49ac1, 0xfbd0e0], bare: false, density: 1.0, ground: [0x8cd65a, 0x7ac44a, 0x98de68, 0x86cc56], particle: 0xfbc8dc, pCount: 220, pSize: 0.5, fall: 1.6, drift: 1.2 },
+  summer: { canopy: [0x2e8b3d, 0x3fa34a, 0x55b85a, 0x237a33], small: [0x3f9b3a, 0x6fcf5a], bare: false, density: 1.0, ground: [0x6fbf47, 0x5fae3c, 0x7fcc55, 0x66b542], particle: 0x9ad66a, pCount: 40, pSize: 0.35, fall: 1.0, drift: 0.8 },
+  autumn: { canopy: [0xe0522f, 0xf08a24, 0xf2b53a, 0xc7391f], small: [0xe8742a, 0xf2b53a], bare: false, density: 0.92, ground: [0xb9c25a, 0xa8b24c, 0xc6cc66, 0xb0b854], particle: 0xf08a24, pCount: 180, pSize: 0.5, fall: 2.0, drift: 1.6 },
+  winter: { canopy: [0xffffff, 0xf2f6fb, 0xe6edf5, 0xffffff], small: [0x8a6a4a, 0xffffff], bare: true, density: 0.45, ground: [0xf4f7fb, 0xe9eef5, 0xffffff, 0xeef2f8], particle: 0xffffff, pCount: 260, pSize: 0.4, fall: 1.2, drift: 0.9 },
 };
 export const SEASON_NAMES = Object.keys(SEASONS);
 // 大木の様式（形）。trunk: 幹、branches: 枝、canopy: 樹冠を作る楕円体の集合（cut より下は切る）
@@ -102,15 +102,54 @@ function building(t, x, z, w, h, d, wallIdx, roofIdx, y0 = 0) {
   v.push({ x: x, y: y0 + 0.5, z: z + d / 2 - 0.5, c: 0x5f6b7a });
   return v;
 }
-function tree(t, x, z, s = 1) {
+function tree(t, x, z, s = 1, season = null) {
   const v = [];
   for (let y = 0; y < 2 * s; y++) v.push({ x, y: y + 0.5, z, c: t.trunk });
   const r = 1 + s;
+  const col = season ? season.small : [t.tree, t.treeLight];
+  if (season && season.bare) {                                           // 冬: 枝だけ残し、先端に雪
+    for (let y = 2 * s; y < 2 * s + 2; y++) v.push({ x, y: y + 0.5, z, c: t.trunk });
+    [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1]].forEach(([dx, dz], i) => { v.push({ x: x + dx, y: 2 * s + 2.5 + (i % 2), z: z + dz, c: t.trunk }); v.push({ x: x + dx, y: 2 * s + 3.5 + (i % 2), z: z + dz, c: 0xffffff }); });
+    v.push({ x, y: 2 * s + 2.5, z, c: 0xffffff });
+    return v;
+  }
   for (let i = -r; i <= r; i++) for (let j = 0; j <= r + 1; j++) for (let k = -r; k <= r; k++) {
-    if (i * i + (j - r * 0.6) * (j - r * 0.6) + k * k <= r * r + 0.5) v.push({ x: x + i, y: 2 * s + j + 0.5, z: z + k, c: (i + j) % 3 === 0 ? t.treeLight : t.tree });
+    if (i * i + (j - r * 0.6) * (j - r * 0.6) + k * k <= r * r + 0.5) v.push({ x: x + i, y: 2 * s + j + 0.5, z: z + k, c: (i + j) % 3 === 0 ? col[1] : col[0] });
   }
   return v;
 }
+
+// ---------- ボクセル人形（頭の大きい統一デザイン）。部位ごとに分けて動かせる ----------
+const CHAR_V = 0.4;                                   // 1 ボクセルの大きさ
+const CHAR_PAL = { hair: 0x4a3222, hairLight: 0x5c4030, skin: 0xf5cba4, eye: 0x2b2b2b, shirt: 0xffffff, shirtShade: 0xe6e6e6, pants: 0x2f3a5c, shoe: 0x5a3a22 };
+function part(list, pivot) { const m = makeVoxels(list, CHAR_V); m.position.set(pivot[0], pivot[1], pivot[2]); return m; }
+function makeChar() {
+  const g = new THREE.Group(); const P = CHAR_PAL;
+  // 脚（股関節が原点、下向きに 3 ボクセル）
+  const leg = (sx) => { const v = []; for (let y = -3; y < 0; y++) for (let i = 0; i < 2; i++) for (let k = 0; k < 2; k++) v.push({ x: sx + i - 0.5, y: y + 0.5, z: k - 0.5, c: y === -3 ? P.shoe : P.pants }); return part(v, [0, 1.2, 0]); };
+  const legL = leg(-1.5), legR = leg(0.5);
+  // 上半身（股関節が原点のグループ）。胴・腕・頭を含むので、前かがみや体のひねりで一緒に動く
+  const torso = new THREE.Group(); torso.position.set(0, 1.2, 0);
+  const body = []; for (let y = 0; y < 5; y++) for (let i = -2; i <= 2; i++) for (let k = -1; k <= 1; k++) body.push({ x: i, y: y + 0.5, z: k, c: (k === -1) ? P.shirtShade : P.shirt });
+  torso.add(part(body, [0, 0, 0]));
+  // 腕（肩が原点、下向きに 4 ボクセル。先端は手）
+  const arm = (sx) => { const v = []; for (let y = -4; y < 0; y++) v.push({ x: 0, y: y + 0.5, z: 0, c: y === -4 ? P.skin : P.shirt }); return part(v, [sx, 1.9, 0]); };
+  const armL = arm(-1.25), armR = arm(1.25); torso.add(armL, armR);
+  // 頭（首が原点、6×6×6。髪が上 2 段と後ろ半分、顔は前。目は 2 段目）
+  const head = [];
+  for (let y = 0; y < 6; y++) for (let i = -3; i < 3; i++) for (let k = -3; k < 3; k++) {
+    const hair = y >= 4 || k <= -1 || (y >= 3 && (i === -3 || i === 2));
+    let c = hair ? ((i + y) % 3 === 0 ? P.hairLight : P.hair) : P.skin;
+    if (!hair && y === 2 && k === 2 && (i === -2 || i === 1)) c = P.eye;
+    head.push({ x: i + 0.5, y: y + 0.5, z: k + 0.5, c });
+  }
+  head.push({ x: 1.5, y: 6.5, z: -0.5, c: P.hair }, { x: -1.5, y: 6.5, z: 0.5, c: P.hair });   // 髪のはね
+  const headM = part(head, [0, 2.0, 0]); torso.add(headM);
+  g.add(legL, legR, torso);
+  return { g, legL, legR, torso, armL, armR, head: headM };
+}
+// 手に持つ小物（腕の先に付ける）
+function stick(len, color) { const v = []; for (let i = 0; i < len; i++) v.push({ x: 0, y: -3 - i + 0.5, z: 0, c: color }); return makeVoxels(v, CHAR_V); }
 
 export function createDiorama(canvas, { themeName = 'yellow', seasonName = seasonForDate(), base = '/' } = {}) {
   let t = THEMES[themeName] || THEMES.yellow;
@@ -253,7 +292,6 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       ...building(t, 20, 15, 8, 4, 7, 1, 1),       // 食堂（赤い屋根）
       ...building(t, -21, 8, 6, 3, 6, 1, 1),       // 売店
       ...building(t, -21, 17, 6, 4, 6, 0, 2),      // 小さな建物
-      ...tree(t, -8, -21, 1), ...tree(t, 8, -22, 1), ...tree(t, -24, -2, 1), ...tree(t, 24, 2, 1), ...tree(t, 12, 22, 1), ...tree(t, 2, 23, 1), ...tree(t, -12, 23, 1), ...tree(t, 24, -5, 1), ...tree(t, -3, -24, 1),
     ];
     // 電子顕微鏡（塔の右奥）
     for (let y = 0; y < 6; y++) for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) v.push({ x: 12 + dx, y: y + 0.5, z: -8 + dz, c: y === 5 ? t.deviceLight : t.device });
@@ -266,14 +304,23 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     // 「M2D」の文字（手前の縁）
     const FONT = { M: ['#...#', '##.##', '#.#.#', '#...#', '#...#'], 2: ['####.', '....#', '.###.', '#....', '#####'], D: ['####.', '#...#', '#...#', '#...#', '####.'] };
     ['M', '2', 'D'].forEach((ch, li) => FONT[ch].forEach((row, ry) => [...row].forEach((c, cx) => { if (c === '#') v.push({ x: -8 + li * 6 + cx, y: 4.5 - ry, z: 24.5, c: t.letter }); })));
-    const meshes = [makeVoxels(v, 1)];
-    // 見上げる研究者たち
-    [[-9, 7, 0, 0.4], [9, 5, 1, -0.6], [3, 11, 2, 0], [-13, -3, 1, 1.2], [16, 6, 3, -1.2]].forEach(([x, z, c, f]) => meshes.push(person(t, x, z, c, f)));
-    return meshes;
+    return [makeVoxels(v, 1)];
   });
+  // 小さな木（季節で色が変わる）
+  const smallTreesHolder = new THREE.Group(); world.add(smallTreesHolder);
+  const SMALL_TREES = [[-8, -21], [8, -22], [-24, -2], [24, 2], [12, 22], [2, 23], [-12, 23], [24, -5], [-3, -24]];
+  function buildSmallTrees() { smallTreesHolder.clear(); smallTreesHolder.add(makeVoxels(SMALL_TREES.flatMap(([x, z]) => tree(t, x, z, 1, season)), 1)); }
 
-  // ---- キャッチボールをする学生 2 人とボール ----
-  addThemed((t) => [person(t, -10, 18, 2, Math.PI / 2), person(t, 0, 18, 3, -Math.PI / 2)]);
+  // ---- 登場人物 6 人（統一デザイン）。動きは frame() で付ける ----
+  const chars = {};
+  const place = (key, x, z, ry) => { const c = makeChar(); c.g.position.set(x, 0, z); c.g.rotation.y = ry; world.add(c.g); chars[key] = c; return c; };
+  place('catchA', -11, 18, Math.PI / 2);                  // キャッチボール（投げる側）
+  place('catchB', 1, 18, -Math.PI / 2);                   // キャッチボール（受ける側）
+  const batter = place('batter', 17, 20, -0.6);           // 素振り
+  batter.armR.add(stick(5, 0xc9a06a));                    // バット
+  const climber = place('climber', 0, 0, 0);              // 木登り（幹に張り付く）
+  const runner = place('runner', 15.5, 0, 0);             // 校庭（環状の道）をマラソン
+  place('backpain', -20, 2, 0.9);                         // 腰が痛そうな人
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), new THREE.MeshLambertMaterial({ color: 0xffffff })); ball.castShadow = true; world.add(ball);
 
   // ---- 塔の周りを飛ぶ飛行機 ----
@@ -290,7 +337,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     research: [0, 42, 0, true],           // 樹冠のてっぺん（高さは buildTreeShape が更新）
     publications: [12, 24, 9, true],       // 枝の上
     about: [-17, 8, -16],                   // 研究棟の屋上
-    members: [-5, 6, 18],                   // キャッチボールの間
+    members: [-5, 7, 18],                   // キャッチボールの間
     equipment: [12, 8, -8],                 // 電子顕微鏡
     join: [-12, 7, 10],                     // 立て看板
     access: [14, 5, 12],                    // 郵便受け
@@ -340,9 +387,38 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       particleMesh.setMatrixAt(i, m4);
     }
     particleMesh.instanceMatrix.needsUpdate = true;
-    // キャッチボール: 2 人の間を放物線で往復
+    // 登場人物の動き
+    const swingLeg = (c, ph, amp = 0.6) => { c.legL.rotation.x = Math.sin(ph) * amp; c.legR.rotation.x = -Math.sin(ph) * amp; };
+    // キャッチボール: ボールは 2 人の間を放物線で往復。投げる側の腕が振られる
     const T = 2.2, ph = (time % (2 * T)) / T, u = ph < 1 ? ph : 2 - ph;
-    ball.position.set(-10 + 10 * u, 3 + Math.sin(u * Math.PI) * 4, 18);
+    ball.position.set(-11 + 12 * u, 3.5 + Math.sin(u * Math.PI) * 4, 18);
+    const cA = chars.catchA, cB = chars.catchB;
+    cA.armR.rotation.x = ph < 1 ? -Math.PI * 0.8 * (1 - Math.min(1, ph * 4)) : -Math.PI * 0.8 * Math.min(1, (ph - 1) * 4);
+    cB.armR.rotation.x = ph < 1 ? -Math.PI * 0.6 * Math.min(1, ph * 1.2) : -Math.PI * 0.6 * (1 - Math.min(1, (ph - 1) * 1.5));
+    cA.armL.rotation.x = -0.3; cB.armL.rotation.x = -0.3;
+    // 素振り: 構え → 一気に振る → 戻す（3 秒周期）
+    const bt = time % 3, sw = bt < 1.8 ? 0 : bt < 2.1 ? (bt - 1.8) / 0.3 : bt < 2.6 ? 1 : 1 - (bt - 2.6) / 0.4;
+    batter.torso.rotation.y = -0.6 + sw * 1.8; batter.head.rotation.y = -0.3 + sw * 0.6;
+    batter.armR.rotation.x = -1.2 + sw * 0.4; batter.armR.rotation.z = -0.6 + sw * 1.6; batter.armL.rotation.x = -1.0; batter.armL.rotation.z = 0.3 + sw * 1.2;
+    batter.legL.rotation.x = 0.2 - sw * 0.3; batter.legR.rotation.x = -0.1 + sw * 0.3;
+    // 木登り: 幹に張り付いて上り下り。手足を交互に動かす
+    const cy = 4 + (Math.sin(time * 0.35) * 0.5 + 0.5) * 9, cang = 0.9;
+    const trunkR = treeStyle.trunk.r + 0.9;
+    climber.g.position.set(Math.cos(cang) * trunkR, cy, Math.sin(cang) * trunkR); climber.g.rotation.y = -cang + Math.PI / 2;
+    climber.g.rotation.x = -0.25;                                     // 少し前傾して幹に抱きつく
+    climber.armL.rotation.x = -Math.PI * 0.85 + Math.sin(time * 2.5) * 0.3; climber.armR.rotation.x = -Math.PI * 0.85 - Math.sin(time * 2.5) * 0.3;
+    climber.legL.rotation.x = -0.7 + Math.sin(time * 2.5 + 1.5) * 0.4; climber.legR.rotation.x = -0.7 - Math.sin(time * 2.5 + 1.5) * 0.4;
+    // マラソン: 環状の道（半径 15.5）を一周 20 秒で走る
+    const ra = time * (Math.PI * 2 / 20), rr = 15.5;
+    runner.g.position.set(Math.cos(ra) * rr, 0, Math.sin(ra) * rr); runner.g.rotation.y = -ra;
+    runner.g.position.y = Math.abs(Math.sin(time * 9)) * 0.25;
+    swingLeg(runner, time * 9, 0.8); runner.armL.rotation.x = Math.sin(time * 9 + Math.PI) * 0.9 - 0.4; runner.armR.rotation.x = Math.sin(time * 9) * 0.9 - 0.4;
+    // 腰が痛そうな人: 前かがみで腰に手を当て、ときどき伸ばそうとして戻る
+    const bp = chars.backpain, strain = 0.5 + Math.max(0, Math.sin(time * 0.8)) * 0.25;
+    bp.torso.rotation.x = strain; bp.head.rotation.x = strain - 0.2;
+    bp.armR.rotation.x = Math.PI * 0.7; bp.armR.rotation.z = -0.5;      // 右手を腰の後ろへ
+    bp.armL.rotation.x = strain * 0.6;                                   // 左手は膝の方へ
+    bp.g.position.y = -strain * 0.25;
     // 飛行機: 塔の周りを旋回しつつ上下にうねる
     const pa = time * 0.5, pr = 20;
     plane.position.set(Math.cos(pa) * pr, 26 + Math.sin(time * 0.9) * 4, Math.sin(pa) * pr);
@@ -412,7 +488,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     t = THEMES[name] || THEMES.yellow;
     scene.background = new THREE.Color(t.bg); scene.fog = new THREE.Fog(t.bg, 160, 320);
     hemi.color.set(t.hemiSky); hemi.groundColor.set(t.hemiGround); hemi.intensity = t.hemiI; sun.color.set(t.sun); sun.intensity = t.sunI;
-    edge.material.color.set(t.base); buildGround();
+    edge.material.color.set(t.base); buildGround(); buildSmallTrees();
     for (const th of themed) { th.holder.clear(); th.fn(t).forEach((m) => th.holder.add(m)); }
     plane.clear(); plane.add(makeVoxels(planeVox.map((p) => ({ ...p, c: p.k === 'nose' ? 0x303030 : p.k === 'accent' ? t.planeAccent : t.plane })), 0.7));
   }
@@ -420,15 +496,15 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   function applySeason(name, styleName) {
     seasonKey = SEASONS[name] ? name : 'autumn';
     season = SEASONS[seasonKey];
-    buildGround(); buildParticles();
+    buildGround(); buildParticles(); buildSmallTrees();
     buildTreeShape(TREE_STYLES[styleName || SEASON_STYLE[seasonKey]] || TREE_STYLES.umbrella);   // 中で buildCanopy も走る
   }
   function applyTreeStyle(name) { buildTreeShape(TREE_STYLES[name] || TREE_STYLES.umbrella); }
   // 画像の書き出し（確認用）: 木を正面から収めた 1 枚を JPEG の data URL で返す
-  function capture(w = 1200, h = 800, dist = 125, lookY = 22) {
+  function capture(w = 1200, h = 800, dist = 125, lookY = 22, tx = 0, tz = 0) {
     const saved = { pos: camera.position.clone(), fo: camera.filmOffset, aspect: camera.aspect, rot: world.rotation.y, size: renderer.getSize(new THREE.Vector2()), pr: renderer.getPixelRatio() };
     renderer.setPixelRatio(1); renderer.setSize(w, h, false); camera.aspect = w / h; camera.filmOffset = 0;
-    camera.position.set(0, lookY + dist * 0.42, dist); camera.lookAt(0, lookY, 0); camera.updateProjectionMatrix();
+    camera.position.set(tx, lookY + dist * 0.42, tz + dist); camera.lookAt(tx, lookY, tz); camera.updateProjectionMatrix();
     const savedScale = bigTree.scale.x; bigTree.scale.setScalar(1);        // 成木の大きさで写す
     renderer.render(scene, camera);
     bigTree.scale.setScalar(savedScale);

@@ -2,6 +2,8 @@
 // すべてコードで組んだ立方体・多角柱で構成し、画像やモデルファイルは使わない。
 // テーマ（黄 / 紺 / 緑 / 黒）は <html data-theme> を読んで色と光を切り替える。
 import * as THREE from 'three';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
 
 const THEMES = {
   yellow: { bg: 0xf6c945, base: 0x2f3a5c, grain: [0x4a5a8a, 0x55679c, 0x3f4f80, 0x5f72a8], road: 0xe9dfc2,
@@ -30,6 +32,13 @@ const THEMES = {
     hemiSky: 0x8fa8ff, hemiGround: 0x1a1a22, sun: 0xffffff, sunI: 1.6, hemiI: 0.6, emissive: 0x111318 },
 };
 export const THEME_NAMES = Object.keys(THEMES);
+
+// MagicaVoxel などで作った部品の差し替え設定。public/models/<name>.obj（＋ .mtl ＋ .png）があれば読み込む。
+//  attach: 'wire' = ナノワイヤの塔（成長アニメーションに追従）/ 'world' = 街の中の固定物
+//  height: 塔の高さに合わせて拡大縮小（attach:'wire' のとき）。scale: そのままの倍率（attach:'world' のとき）
+export const MODELS = [
+  { name: 'nanowire', attach: 'wire', height: 48 },
+];
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- 部品 ----------
@@ -77,7 +86,7 @@ function tree(t, x, z, s = 1) {
   return v;
 }
 
-export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
+export function createDiorama(canvas, { themeName = 'yellow', base = '/' } = {}) {
   let t = THEMES[themeName] || THEMES.yellow;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -119,8 +128,43 @@ export function createDiorama(canvas, { themeName = 'yellow' } = {}) {
   const wireMat = new THREE.MeshStandardMaterial({ color: t.wire, metalness: 0.25, roughness: 0.45, flatShading: true, emissive: t.emissive });
   const wire = new THREE.Mesh(wireGeo, wireMat); wire.castShadow = true; wire.position.y = 2.5; world.add(wire);
   const capGeo = new THREE.CylinderGeometry(0, WIRE_R * 0.92, 4, 6); capGeo.translate(0, WIRE_H + 2, 0);
-  wire.add(new THREE.Mesh(capGeo, wireMat));
+  const cap = new THREE.Mesh(capGeo, wireMat); wire.add(cap);
   const edges = new THREE.LineSegments(new THREE.EdgesGeometry(wireGeo, 20), new THREE.LineBasicMaterial({ color: t.wireEdge, transparent: true, opacity: 0.35 })); wire.add(edges);
+  // ---- 差し替え部品の読み込み（ファイルが無ければ何もしない） ----
+  const modelDir = base.replace(/\/$/, '') + '/models/';
+  for (const m of MODELS) {
+    const url = modelDir + m.name + '.obj';
+    fetch(url, { method: 'HEAD' }).then((r) => { if (!r.ok) return;
+      const mtl = new MTLLoader().setPath(modelDir);
+      mtl.load(m.name + '.mtl', (materials) => {
+        materials.preload();
+        const obj = new OBJLoader().setMaterials(materials).setPath(modelDir);
+        obj.load(m.name + '.obj', (group) => placeModel(m, group), undefined, (e) => console.warn('model load failed', m.name, e));
+      }, undefined, () => {
+        // .mtl が無い場合は色なしで読み込む
+        new OBJLoader().setPath(modelDir).load(m.name + '.obj', (group) => placeModel(m, group));
+      });
+    }).catch(() => {});
+  }
+  function placeModel(m, group) {
+    group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material && o.material.map) o.material.map.colorSpace = THREE.SRGBColorSpace; } });
+    let box = new THREE.Box3().setFromObject(group); const size = new THREE.Vector3(); box.getSize(size);
+    // MagicaVoxel は Z が上。書き出し設定によっては縦長の塔が横倒しになるので、高さ方向が最長になるよう起こす
+    if (m.attach === 'wire' && size.y < size.z) { group.rotation.x = -Math.PI / 2; group.updateMatrixWorld(true); box = new THREE.Box3().setFromObject(group); box.getSize(size); }
+    const center = new THREE.Vector3(); box.getCenter(center);
+    if (m.attach === 'wire') {
+      const k = (m.height || WIRE_H) / size.y;                       // 塔の高さに合わせる
+      group.scale.setScalar(k);
+      group.position.set(-center.x * k, -box.min.y * k, -center.z * k); // 底面を y=0、中心を軸に
+      wire.material.visible = false; edges.visible = false; cap.visible = false;   // コード描画の塔を隠す
+      wire.add(group);
+    } else {
+      const k = m.scale || 1;
+      group.scale.setScalar(k);
+      group.position.set((m.x || 0) - center.x * k, -box.min.y * k + (m.y || 0), (m.z || 0) - center.z * k);
+      world.add(group);
+    }
+  }
   const rootGeo = new THREE.CylinderGeometry(WIRE_R + 2.5, WIRE_R + 4, 2, 6); rootGeo.translate(0, 1, 0);
   const root = new THREE.Mesh(rootGeo, new THREE.MeshLambertMaterial({ color: t.grain[1] })); root.position.y = 2.5; root.castShadow = true; world.add(root);
 

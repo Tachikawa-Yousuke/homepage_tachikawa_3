@@ -301,9 +301,6 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     for (let dx = -2; dx <= 2; dx++) for (let dy = 0; dy < 3; dy++) v.push({ x: -12 + dx, y: 3.5 + dy, z: 10, c: dy === 1 && Math.abs(dx) < 2 ? t.letter : t.sign });
     for (let y = 0; y < 2; y++) v.push({ x: 14, y: y + 0.5, z: 12, c: 0x8a93a3 });
     for (let dx = -1; dx <= 1; dx++) for (let dy = 0; dy < 2; dy++) for (let dz = 0; dz < 2; dz++) v.push({ x: 14 + dx, y: 2.5 + dy, z: 11 + dz, c: dy ? 0xff7a59 : 0xd04a2a });
-    // 「M2D」の文字（手前の縁）
-    const FONT = { M: ['#...#', '##.##', '#.#.#', '#...#', '#...#'], 2: ['####.', '....#', '.###.', '#....', '#####'], D: ['####.', '#...#', '#...#', '#...#', '####.'] };
-    ['M', '2', 'D'].forEach((ch, li) => FONT[ch].forEach((row, ry) => [...row].forEach((c, cx) => { if (c === '#') v.push({ x: -8 + li * 6 + cx, y: 4.5 - ry, z: 24.5, c: t.letter }); })));
     return [makeVoxels(v, 1)];
   });
   // 小さな木（季節で色が変わる）
@@ -313,14 +310,15 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
 
   // ---- 登場人物 6 人（統一デザイン）。動きは frame() で付ける ----
   const chars = {};
-  const place = (key, x, z, ry) => { const c = makeChar(); c.g.position.set(x, 0, z); c.g.rotation.y = ry; world.add(c.g); chars[key] = c; return c; };
+  const GROUND_Y = 1;                                     // 地面の上面の高さ
+  const place = (key, x, z, ry) => { const c = makeChar(); c.g.position.set(x, GROUND_Y, z); c.g.rotation.y = ry; world.add(c.g); chars[key] = c; return c; };
   place('catchA', -11, 18, Math.PI / 2);                  // キャッチボール（投げる側）
   place('catchB', 1, 18, -Math.PI / 2);                   // キャッチボール（受ける側）
-  const batter = place('batter', 17, 20, -0.6);           // 素振り
+  const batter = place('batter', 9, 2, Math.PI / 2);      // 素振り（大木のすぐ隣、外向き）
   batter.armR.add(stick(5, 0xc9a06a));                    // バット
   const climber = place('climber', 0, 0, 0);              // 木登り（幹に張り付く）
   const runner = place('runner', 15.5, 0, 0);             // 校庭（環状の道）をマラソン
-  place('backpain', -20, 2, 0.9);                         // 腰が痛そうな人
+  place('backpain', -23, 23, -0.8);                       // 腰が痛そうな人（手前左の角）
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), new THREE.MeshLambertMaterial({ color: 0xffffff })); ball.castShadow = true; world.add(ball);
 
   // ---- 塔の周りを飛ぶ飛行機 ----
@@ -391,7 +389,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     const swingLeg = (c, ph, amp = 0.6) => { c.legL.rotation.x = Math.sin(ph) * amp; c.legR.rotation.x = -Math.sin(ph) * amp; };
     // キャッチボール: ボールは 2 人の間を放物線で往復。投げる側の腕が振られる
     const T = 2.2, ph = (time % (2 * T)) / T, u = ph < 1 ? ph : 2 - ph;
-    ball.position.set(-11 + 12 * u, 3.5 + Math.sin(u * Math.PI) * 4, 18);
+    ball.position.set(-11 + 12 * u, GROUND_Y + 3.5 + Math.sin(u * Math.PI) * 4, 18);
     const cA = chars.catchA, cB = chars.catchB;
     cA.armR.rotation.x = ph < 1 ? -Math.PI * 0.8 * (1 - Math.min(1, ph * 4)) : -Math.PI * 0.8 * Math.min(1, (ph - 1) * 4);
     cB.armR.rotation.x = ph < 1 ? -Math.PI * 0.6 * Math.min(1, ph * 1.2) : -Math.PI * 0.6 * (1 - Math.min(1, (ph - 1) * 1.5));
@@ -404,21 +402,20 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     // 木登り: 幹に張り付いて上り下り。手足を交互に動かす
     const cy = 4 + (Math.sin(time * 0.35) * 0.5 + 0.5) * 9, cang = 0.9;
     const trunkR = treeStyle.trunk.r + 0.9;
-    climber.g.position.set(Math.cos(cang) * trunkR, cy, Math.sin(cang) * trunkR); climber.g.rotation.y = -cang + Math.PI / 2;
-    climber.g.rotation.x = -0.25;                                     // 少し前傾して幹に抱きつく
+    climber.g.position.set(Math.cos(cang) * trunkR, cy, Math.sin(cang) * trunkR); climber.g.rotation.y = -cang - Math.PI / 2;   // 顔を幹に向ける
+    climber.g.rotation.x = 0.2;                                       // 少し前傾して幹に抱きつく
     climber.armL.rotation.x = -Math.PI * 0.85 + Math.sin(time * 2.5) * 0.3; climber.armR.rotation.x = -Math.PI * 0.85 - Math.sin(time * 2.5) * 0.3;
     climber.legL.rotation.x = -0.7 + Math.sin(time * 2.5 + 1.5) * 0.4; climber.legR.rotation.x = -0.7 - Math.sin(time * 2.5 + 1.5) * 0.4;
     // マラソン: 環状の道（半径 15.5）を一周 20 秒で走る
     const ra = time * (Math.PI * 2 / 20), rr = 15.5;
-    runner.g.position.set(Math.cos(ra) * rr, 0, Math.sin(ra) * rr); runner.g.rotation.y = -ra;
-    runner.g.position.y = Math.abs(Math.sin(time * 9)) * 0.25;
+    runner.g.position.set(Math.cos(ra) * rr, GROUND_Y + Math.abs(Math.sin(time * 9)) * 0.25, Math.sin(ra) * rr); runner.g.rotation.y = -ra;
     swingLeg(runner, time * 9, 0.8); runner.armL.rotation.x = Math.sin(time * 9 + Math.PI) * 0.9 - 0.4; runner.armR.rotation.x = Math.sin(time * 9) * 0.9 - 0.4;
     // 腰が痛そうな人: 前かがみで腰に手を当て、ときどき伸ばそうとして戻る
     const bp = chars.backpain, strain = 0.5 + Math.max(0, Math.sin(time * 0.8)) * 0.25;
     bp.torso.rotation.x = strain; bp.head.rotation.x = strain - 0.2;
     bp.armR.rotation.x = Math.PI * 0.7; bp.armR.rotation.z = -0.5;      // 右手を腰の後ろへ
     bp.armL.rotation.x = strain * 0.6;                                   // 左手は膝の方へ
-    bp.g.position.y = -strain * 0.25;
+    bp.g.position.y = GROUND_Y - strain * 0.25;
     // 飛行機: 塔の周りを旋回しつつ上下にうねる
     const pa = time * 0.5, pr = 20;
     plane.position.set(Math.cos(pa) * pr, 26 + Math.sin(time * 0.9) * 4, Math.sin(pa) * pr);

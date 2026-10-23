@@ -4,6 +4,7 @@ import Base from '../layouts/Base.astro';
 import site from '../data/site.json';
 import { getCollection } from 'astro:content';
 import { withBase } from '../lib/url';
+import MemberCard from '../components/MemberCard.astro';
 
 const all = (await getCollection('members')).sort((a, b) => a.data.order - b.data.order);
 const groups = [
@@ -12,8 +13,6 @@ const groups = [
   { key: 'staff', label: '技術職員', en: 'Technical staff' },
 ];
 const alumni = all.filter((m) => m.data.group === 'alumni');
-const img = (f: string) => withBase('/images/members/' + f);
-const defaultVoxel = img('default-voxel.png');
 ---
 <Base title="メンバー" en="Members">
   <p class="members-lead">カードにカーソルを載せる（スマートフォンでは押す）と名刺が裏返ります。{site.foundedText}の研究室で、メンバーを募集しています。</p>
@@ -23,37 +22,15 @@ const defaultVoxel = img('default-voxel.png');
     return (
       <section class="member-group">
         <h2 class="group-head"><span class="en">{g.en}</span>{g.label}{list.length === 0 && <small>（準備中）</small>}</h2>
-        {list.length > 0 && (
-          <ul class={'card-flip-grid ' + (g.key === 'faculty' ? 'is-faculty' : '')}>
-            {list.map(({ data }) => {
-              const hasPhoto = data.consent && data.photo;
-              return (
-                <li class={'flip ' + (hasPhoto ? 'can-flip' : 'no-photo')} tabindex="0">
-                  <div class="flip-inner">
-                    <div class="face front">
-                      <img src={data.voxel ? img(data.voxel) : defaultVoxel} alt="" loading="lazy" />
-                      <div class="meta">
-                        <span class="role">{data.role}</span>
-                        <strong>{data.name}</strong>
-                        {data.nameEn && <span class="en">{data.nameEn}</span>}
-                      </div>
-                      {hasPhoto && <span class="hint-flip">裏面に写真</span>}
-                    </div>
-                    <div class="face back">
-                      {hasPhoto && <img src={img(data.photo!)} alt={data.name + 'の写真'} loading="lazy" />}
-                      <div class="meta">
-                        <span class="role">{data.role}{data.roleEn && <span class="en"> / {data.roleEn}</span>}</span>
-                        <strong>{data.name}</strong>
-                        {data.interests.length > 0 && <p class="keys">{data.interests.join('　')}</p>}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+        {list.length > 0 && g.key === 'faculty' && list.map(({ data }) => (
+          <div class="faculty-row">
+            <ul class="card-flip-grid is-faculty"><MemberCard data={data} /></ul>
+            {data.bio && <p class="bio">{data.bio}</p>}
+          </div>
+        ))}
+        {list.length > 0 && g.key !== 'faculty' && (
+          <ul class="card-flip-grid">{list.map(({ data }) => <MemberCard data={data} />)}</ul>
         )}
-        {g.key === 'faculty' && list.map(({ data }) => data.bio && <p class="bio">{data.bio}</p>)}
       </section>
     );
   })}

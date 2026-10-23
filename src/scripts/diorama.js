@@ -134,18 +134,22 @@ function makeChar(opts = {}) {
     let c = (k === -1) ? P.shirtShade : P.shirt;
     if (P.jacket) { const front = k === 1 && Math.abs(i) <= 0; c = front ? P.shirt : P.jacket; }      // 上着: 前の中央だけシャツが見える
     if (P.tie && k === 1 && i === 0 && y >= 1 && y <= 4) c = P.tie;                                     // ネクタイ
+    if (P.inner && k === 1 && Math.abs(i) <= 1 && y === 4) c = P.inner;                                  // 襟元から見える下着
     body.push({ x: i, y: y + 0.5, z: k, c });
   }
   torso.add(part(body, [0, 0, 0]));
   const arm = (sx) => { const v = []; for (let y = -4; y < 0; y++) v.push({ x: 0, y: y + 0.5, z: 0, c: y === -4 ? P.skin : (P.jacket || P.shirt) }); return part(v, [sx, 1.9, 0]); };
   const armL = arm(-1.25), armR = arm(1.25); torso.add(armL, armR);
   const head = [];
+  const medium = P.hairStyle === 'medium';                            // 肩にかかる長めの髪: 横と後ろが下まで髪、前髪は額の片側
   for (let y = 0; y < 6; y++) for (let i = -3; i < 3; i++) for (let k = -3; k < 3; k++) {
-    const hair = y >= 4 || k <= -1 || (y >= 3 && (i === -3 || i === 2));
+    let hair = y >= 4 || k <= -1 || (y >= 3 && (i === -3 || i === 2));
+    if (medium) hair = hair || (y >= 3 && (i === -3 || i === 2)) || (k <= 0 && y >= 1) || (y === 3 && k === 2 && i >= 1);   // 横髪は目の上まで、前髪は右端だけ
     let c = hair ? ((i + y) % 3 === 0 ? (P.hairLight || P.hair) : P.hair) : P.skin;
     if (!hair && y === 2 && k === 2 && (i === -2 || i === 1)) c = P.eye;
     head.push({ x: i + 0.5, y: y + 0.5, z: k + 0.5, c });
   }
+  if (medium) for (const i of [-3, 2]) for (const k of [-2, -1, 0]) head.push({ x: i + 0.5, y: -0.5, z: k + 0.5, c: P.hair });   // 襟足
   head.push({ x: 1.5, y: 6.5, z: -0.5, c: P.hair }, { x: -1.5, y: 6.5, z: 0.5, c: P.hair });
   const headM = part(head, [0, 2.0, 0]); torso.add(headM);
   if (P.glasses) {                                                   // 眼鏡: 半分の大きさのブロックで、目の周りの枠・ブリッジ・つる
@@ -160,7 +164,7 @@ function makeChar(opts = {}) {
 }
 
 // 1 人分の人形を透明背景の画像にする（メンバー紹介用）。opts は makeChar と同じ
-export function renderPortrait(opts = {}, { w = 600, h = 720, pose = 'stand' } = {}) {
+export function renderPortrait(opts = {}, { w = 600, h = 720, pose = 'stand', angle = -0.45 } = {}) {
   const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
   const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
   r.setPixelRatio(1); r.setClearColor(0x000000, 0); r.shadowMap.enabled = true; r.outputColorSpace = THREE.SRGBColorSpace;
@@ -168,7 +172,7 @@ export function renderPortrait(opts = {}, { w = 600, h = 720, pose = 'stand' } =
   sc.add(new THREE.HemisphereLight(0xffffff, 0xb0a080, 1.0));
   const sun = new THREE.DirectionalLight(0xfff2d0, 2.0); sun.position.set(6, 12, 8); sun.castShadow = true; sc.add(sun);
   const c = makeChar(opts); sc.add(c.g);
-  c.g.rotation.y = -0.45;                                             // やや斜め前を向く
+  c.g.rotation.y = angle;                                             // 既定はやや斜め前を向く
   if (pose === 'wave') { c.armR.rotation.x = -Math.PI * 0.9; c.armR.rotation.z = -0.3; }
   if (pose === 'arms') { c.armL.rotation.x = -0.4; c.armR.rotation.x = -0.4; }
   const cam = new THREE.PerspectiveCamera(28, w / h, 0.1, 100);

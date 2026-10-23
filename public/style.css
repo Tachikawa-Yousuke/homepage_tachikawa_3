@@ -171,7 +171,10 @@ address { font-style: normal; line-height: 2; }
 .group-head .en { font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--accent2); font-weight: 700; }
 .group-head small { font-size: 13px; font-weight: 400; color: var(--muted); }
 .card-flip-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; }
-.card-flip-grid.is-faculty { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.card-flip-grid.is-faculty { grid-template-columns: 1fr; }
+.faculty-row { display: grid; grid-template-columns: 280px 1fr; gap: 28px; align-items: start; margin-bottom: 20px; }
+.faculty-row .bio { margin: 0; }
+@media (max-width: 760px) { .faculty-row { grid-template-columns: 1fr; } }
 .flip { perspective: 1200px; aspect-ratio: 3 / 4; outline: none; cursor: default; }
 .flip.can-flip { cursor: pointer; }
 .flip-inner { position: relative; width: 100%; height: 100%; transition: transform .6s cubic-bezier(.2,.7,.2,1); transform-style: preserve-3d; }

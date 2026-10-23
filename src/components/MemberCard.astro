@@ -1,0 +1,30 @@
+---
+// メンバー名刺 1 枚。表: ボクセル人形、裏: 写真（consent が true のときだけ）とプロフィール
+import { withBase } from '../lib/url';
+interface Props { data: any }
+const { data } = Astro.props;
+const img = (f: string) => withBase('/images/members/' + f);
+const hasPhoto = !!(data.consent && data.photo);
+const front = data.voxel ? img(data.voxel) : img('default-voxel.png');
+---
+<li class={'flip ' + (hasPhoto ? 'can-flip' : 'no-photo')} tabindex="0">
+  <div class="flip-inner">
+    <div class="face front">
+      <img src={front} alt="" loading="lazy" />
+      <div class="meta">
+        <span class="role">{data.role}</span>
+        <strong>{data.name}</strong>
+        {data.nameEn && <span class="en">{data.nameEn}</span>}
+      </div>
+      {hasPhoto && <span class="hint-flip">裏面に写真</span>}
+    </div>
+    <div class="face back">
+      {hasPhoto && <img src={img(data.photo)} alt={data.name + 'の写真'} loading="lazy" />}
+      <div class="meta">
+        <span class="role">{data.role}{data.roleEn && <span class="en"> / {data.roleEn}</span>}</span>
+        <strong>{data.name}</strong>
+        {data.interests.length > 0 && <p class="keys">{data.interests.join('　')}</p>}
+      </div>
+    </div>
+  </div>
+</li>

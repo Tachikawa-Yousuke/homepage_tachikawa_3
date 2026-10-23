@@ -21,10 +21,14 @@
     「誰もが簡単に小さなモノづくりを」実現する新技術創出をミッションに、基礎研究と社会実装の両面を推進している。
 - id: tachikawa
   name: 立川 陽佑介
+  nameEn: Yosuke TACHIKAWA
   role: M1
   group: student
   order: 10
   interests: []
+  photo: tachikawa.jpg
+  voxel: tachikawa-voxel.png
+  consent: true             # 本人（サイト制作者）
 - id: kuboya
   name: 久保谷 康平
   role: M1
@@ -43,6 +47,13 @@
   group: student
   order: 21
   interests: []
+- id: shiiba
+  name: 椎葉
+  role: 技術職員
+  group: staff
+  order: 50
+  interests: []
+  voxel: shiiba-voxel.png
 - id: butler
   name: BUTLER Austin Thomas
   role: 特別聴講学生（北アリゾナ大学）2025.10–2026.7

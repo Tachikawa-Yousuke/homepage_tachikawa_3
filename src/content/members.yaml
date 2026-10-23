@@ -1,6 +1,7 @@
 # メンバー一覧（現行公式サイト 2026-10 時点の公開情報を転記）
 # - photo / email は本人の同意がある場合のみ記入する。
-# - group: faculty（教員）/ student（学生）/ alumni（卒業生・修了生）
+# - group: faculty（教員）/ student（学生）/ staff（技術職員）/ alumni（卒業生・修了生）
+# - photo は consent: true のときだけ表示される（本人同意の確認後に true にする）
 - id: kimura
   name: 木村 康裕
   nameEn: Yasuhiro KIMURA
@@ -8,6 +9,9 @@
   roleEn: Associate Professor, Principal Investigator
   group: faculty
   order: 1
+  photo: kimura.png          # 公開前に本人の掲載同意を確認し、consent を true にする
+  voxel: kimura-voxel.png
+  consent: true             # ★ 公開前に本人の同意を確認。未確認なら false に戻す
   interests: [原子拡散, 金属ナノワイヤ創製, その場TEM観察, エレクトロマイグレーション]
   bio: >-
     2010年に茨城工業高等専門学校を卒業後、東北大学工学部機械知能・航空工学科に編入学。

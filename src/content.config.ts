@@ -35,10 +35,12 @@ const members = defineCollection({
     role: z.string(), // 例: 教授 / 助教 / D2 / M1 / B4
     roleEn: z.string().optional(),
     bio: z.string().optional(), // 経歴（教員向け）
-    group: z.enum(['faculty', 'student', 'alumni']).default('student'),
+    group: z.enum(['faculty', 'student', 'staff', 'alumni']).default('student'), // faculty 教員 / student 学生 / staff 技術職員 / alumni 卒業生
     order: z.number().default(99),
     email: z.string().optional(), // 本人同意のある場合のみ
-    photo: z.string().optional(), // public/images/members/ 以下。本人同意のある場合のみ
+    photo: z.string().optional(), // public/images/members/ 以下。本人同意の場合のみ
+    voxel: z.string().optional(), // 人形の画像（public/images/members/ 以下）。無ければ既定の人形
+    consent: z.boolean().default(false), // 写真の掲載同意を確認済みなら true（false なら写真は表示しない）
     interests: z.array(z.string()).default([]),
   }),
 });

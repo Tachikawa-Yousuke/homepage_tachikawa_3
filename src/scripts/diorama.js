@@ -123,31 +123,62 @@ function tree(t, x, z, s = 1, season = null) {
 const CHAR_V = 0.4;                                   // 1 ボクセルの大きさ
 const CHAR_PAL = { hair: 0x4a3222, hairLight: 0x5c4030, skin: 0xf5cba4, eye: 0x2b2b2b, shirt: 0xffffff, shirtShade: 0xe6e6e6, pants: 0x2f3a5c, shoe: 0x5a3a22 };
 function part(list, pivot) { const m = makeVoxels(list, CHAR_V); m.position.set(pivot[0], pivot[1], pivot[2]); return m; }
-function makeChar() {
-  const g = new THREE.Group(); const P = CHAR_PAL;
-  // 脚（股関節が原点、下向きに 3 ボクセル）
+// opts: hair（髪色）, skin, shirt, shirtShade, pants, shoe, glasses（眼鏡）, jacket（上着色: 指定すると胴の両脇と背中が上着色）, tie（ネクタイ色）
+function makeChar(opts = {}) {
+  const g = new THREE.Group(); const P = { ...CHAR_PAL, ...opts };
   const leg = (sx) => { const v = []; for (let y = -3; y < 0; y++) for (let i = 0; i < 2; i++) for (let k = 0; k < 2; k++) v.push({ x: sx + i - 0.5, y: y + 0.5, z: k - 0.5, c: y === -3 ? P.shoe : P.pants }); return part(v, [0, 1.2, 0]); };
   const legL = leg(-1.5), legR = leg(0.5);
-  // 上半身（股関節が原点のグループ）。胴・腕・頭を含むので、前かがみや体のひねりで一緒に動く
   const torso = new THREE.Group(); torso.position.set(0, 1.2, 0);
-  const body = []; for (let y = 0; y < 5; y++) for (let i = -2; i <= 2; i++) for (let k = -1; k <= 1; k++) body.push({ x: i, y: y + 0.5, z: k, c: (k === -1) ? P.shirtShade : P.shirt });
+  const body = [];
+  for (let y = 0; y < 5; y++) for (let i = -2; i <= 2; i++) for (let k = -1; k <= 1; k++) {
+    let c = (k === -1) ? P.shirtShade : P.shirt;
+    if (P.jacket) { const front = k === 1 && Math.abs(i) <= 0; c = front ? P.shirt : P.jacket; }      // 上着: 前の中央だけシャツが見える
+    if (P.tie && k === 1 && i === 0 && y >= 1 && y <= 4) c = P.tie;                                     // ネクタイ
+    body.push({ x: i, y: y + 0.5, z: k, c });
+  }
   torso.add(part(body, [0, 0, 0]));
-  // 腕（肩が原点、下向きに 4 ボクセル。先端は手）
-  const arm = (sx) => { const v = []; for (let y = -4; y < 0; y++) v.push({ x: 0, y: y + 0.5, z: 0, c: y === -4 ? P.skin : P.shirt }); return part(v, [sx, 1.9, 0]); };
+  const arm = (sx) => { const v = []; for (let y = -4; y < 0; y++) v.push({ x: 0, y: y + 0.5, z: 0, c: y === -4 ? P.skin : (P.jacket || P.shirt) }); return part(v, [sx, 1.9, 0]); };
   const armL = arm(-1.25), armR = arm(1.25); torso.add(armL, armR);
-  // 頭（首が原点、6×6×6。髪が上 2 段と後ろ半分、顔は前。目は 2 段目）
   const head = [];
   for (let y = 0; y < 6; y++) for (let i = -3; i < 3; i++) for (let k = -3; k < 3; k++) {
     const hair = y >= 4 || k <= -1 || (y >= 3 && (i === -3 || i === 2));
-    let c = hair ? ((i + y) % 3 === 0 ? P.hairLight : P.hair) : P.skin;
+    let c = hair ? ((i + y) % 3 === 0 ? (P.hairLight || P.hair) : P.hair) : P.skin;
     if (!hair && y === 2 && k === 2 && (i === -2 || i === 1)) c = P.eye;
     head.push({ x: i + 0.5, y: y + 0.5, z: k + 0.5, c });
   }
-  head.push({ x: 1.5, y: 6.5, z: -0.5, c: P.hair }, { x: -1.5, y: 6.5, z: 0.5, c: P.hair });   // 髪のはね
+  head.push({ x: 1.5, y: 6.5, z: -0.5, c: P.hair }, { x: -1.5, y: 6.5, z: 0.5, c: P.hair });
   const headM = part(head, [0, 2.0, 0]); torso.add(headM);
+  if (P.glasses) {                                                   // 眼鏡: 半分の大きさのブロックで、目の周りの枠・ブリッジ・つる
+    const gv = [];
+    for (const ex of [-3, 3]) for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) if (Math.abs(i) === 2 || Math.abs(j) === 2) gv.push({ x: ex + i, y: 5 + j, z: 6.6, c: P.glasses });
+    gv.push({ x: -0.5, y: 5, z: 6.6, c: P.glasses }, { x: 0.5, y: 5, z: 6.6, c: P.glasses });            // ブリッジ
+    for (let z = 6; z >= -2; z--) { gv.push({ x: -6.5, y: 5.5, z, c: P.glasses }); gv.push({ x: 6.5, y: 5.5, z, c: P.glasses }); }   // つる
+    const gm = makeVoxels(gv, CHAR_V / 2); gm.castShadow = false; headM.add(gm);
+  }
   g.add(legL, legR, torso);
   return { g, legL, legR, torso, armL, armR, head: headM };
 }
+
+// 1 人分の人形を透明背景の画像にする（メンバー紹介用）。opts は makeChar と同じ
+export function renderPortrait(opts = {}, { w = 600, h = 720, pose = 'stand' } = {}) {
+  const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  r.setPixelRatio(1); r.setClearColor(0x000000, 0); r.shadowMap.enabled = true; r.outputColorSpace = THREE.SRGBColorSpace;
+  const sc = new THREE.Scene();
+  sc.add(new THREE.HemisphereLight(0xffffff, 0xb0a080, 1.0));
+  const sun = new THREE.DirectionalLight(0xfff2d0, 2.0); sun.position.set(6, 12, 8); sun.castShadow = true; sc.add(sun);
+  const c = makeChar(opts); sc.add(c.g);
+  c.g.rotation.y = -0.45;                                             // やや斜め前を向く
+  if (pose === 'wave') { c.armR.rotation.x = -Math.PI * 0.9; c.armR.rotation.z = -0.3; }
+  if (pose === 'arms') { c.armL.rotation.x = -0.4; c.armR.rotation.x = -0.4; }
+  const cam = new THREE.PerspectiveCamera(28, w / h, 0.1, 100);
+  cam.position.set(0.6, 3.6, 17.5); cam.lookAt(0, 2.9, 0);
+  r.render(sc, cam);
+  const url = canvas.toDataURL('image/png');
+  r.dispose();
+  return url;
+}
+
 // 手に持つ小物（腕の先に付ける）
 function stick(len, color) { const v = []; for (let i = 0; i < len; i++) v.push({ x: 0, y: -3 - i + 0.5, z: 0, c: color }); return makeVoxels(v, CHAR_V); }
 
@@ -512,5 +543,5 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   applyTheme(themeName); applySeason(seasonName);
   frame();
   function dispose() { alive = false; renderer.dispose(); }
-  return { applyTheme, applySeason, applyTreeStyle, capture, dispose, renderer, camera, world, HOTSPOTS, TREE_STYLES, SEASON_STYLE };
+  return { applyTheme, applySeason, applyTreeStyle, capture, renderPortrait, dispose, renderer, camera, world, HOTSPOTS, TREE_STYLES, SEASON_STYLE };
 }

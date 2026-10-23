@@ -141,7 +141,7 @@ a { color: inherit; text-decoration: none; }
 .btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 700; font-size: 15px; transition: transform .15s, opacity .15s; }
 .btn:hover { transform: translateY(-2px); opacity: .9; }
 .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--text); }
-@media (max-width: 900px) { .hero-top { top: 90px; } .hero { padding-top: 220px; justify-content: flex-start; } .hero .org { font-size: 12px; color: var(--muted); margin: 14px 0 0; line-height: 1.7; }
+@media (max-width: 900px) { .hero-top { top: 90px; } .hero { padding-top: 220px; justify-content: flex-start; } .hero-catch { position: static; transform: none; margin-top: 24px; } .hero .lead { position: static; margin-top: 24px; } }
 
 /* 各節: 半透明のパネルで模型の上に載せる */
 .section { padding: 48px 0; }
@@ -162,4 +162,35 @@ address { font-style: normal; line-height: 2; }
 .nojs { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 0; }
 
 /* 雛形ページは本文内にも h1 を持つので、見出しの重複を隠す */
-.prose > h1:first-child { display: none; }
+.prose > h1 { display: none; }
+
+/* ---------- メンバー: 名刺フリップ ---------- */
+.members-lead { margin: 0 0 28px; color: var(--muted); }
+.member-group { margin: 0 0 40px; }
+.group-head { font-size: 24px; font-weight: 900; margin: 0 0 16px; padding-left: 12px; border-left: 4px solid var(--accent2); display: flex; flex-direction: column; }
+.group-head .en { font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--accent2); font-weight: 700; }
+.group-head small { font-size: 13px; font-weight: 400; color: var(--muted); }
+.card-flip-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; }
+.card-flip-grid.is-faculty { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.flip { perspective: 1200px; aspect-ratio: 3 / 4; outline: none; cursor: default; }
+.flip.can-flip { cursor: pointer; }
+.flip-inner { position: relative; width: 100%; height: 100%; transition: transform .6s cubic-bezier(.2,.7,.2,1); transform-style: preserve-3d; }
+.flip.can-flip:hover .flip-inner, .flip.can-flip.flipped .flip-inner, .flip.can-flip:focus-visible .flip-inner { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); display: flex; flex-direction: column; }
+.face.front { background: linear-gradient(180deg, var(--bg2), var(--panel)); }
+.face.back { background: var(--bg2); transform: rotateY(180deg); }
+.face img { width: 100%; flex: 1; min-height: 0; object-fit: cover; object-position: center top; }
+.face.front img { object-fit: contain; padding: 10px 10px 0; }
+.face .meta { padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 2px; background: var(--panel); }
+.face .meta .role { font-size: 12px; color: var(--accent2); font-weight: 700; }
+.face .meta strong { font-size: 17px; }
+.face .meta .en { font-size: 12px; color: var(--muted); }
+.face .meta .keys { margin: 6px 0 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.hint-flip { position: absolute; top: 10px; right: 10px; font-size: 11px; padding: 3px 8px; border-radius: 999px; background: var(--text); color: var(--bg); opacity: .85; }
+.bio { margin: 18px 0 0; line-height: 1.95; color: var(--text); }
+.alumni-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.alumni-list li { display: flex; gap: 12px; align-items: baseline; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.alumni-list .muted { font-size: 13px; }
+.members-contact { margin-top: 32px; color: var(--muted); }
+.members-contact a { color: var(--accent2); text-decoration: underline; text-underline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .flip-inner { transition: none; } }

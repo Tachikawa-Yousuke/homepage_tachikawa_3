@@ -1,39 +1,82 @@
 ---
+// メンバー: 名刺フリップ。表はボクセル人形、裏は写真（同意済みのみ）とプロフィール
 import Base from '../layouts/Base.astro';
+import site from '../data/site.json';
 import { getCollection } from 'astro:content';
 import { withBase } from '../lib/url';
 
 const all = (await getCollection('members')).sort((a, b) => a.data.order - b.data.order);
 const groups = [
-  { key: 'faculty', label: '教員' },
-  { key: 'student', label: '学生' },
-  { key: 'alumni', label: '卒業生' },
-] as const;
+  { key: 'faculty', label: '教員', en: 'Faculty' },
+  { key: 'student', label: '学生', en: 'Students' },
+  { key: 'staff', label: '技術職員', en: 'Technical staff' },
+];
+const alumni = all.filter((m) => m.data.group === 'alumni');
+const img = (f: string) => withBase('/images/members/' + f);
+const defaultVoxel = img('default-voxel.png');
 ---
-<Base title="メンバー">
-  <h1>メンバー</h1>
+<Base title="メンバー" en="Members">
+  <p class="members-lead">カードにカーソルを載せる（スマートフォンでは押す）と名刺が裏返ります。{site.foundedText}の研究室で、メンバーを募集しています。</p>
+
   {groups.map((g) => {
     const list = all.filter((m) => m.data.group === g.key);
-    if (list.length === 0) return null;
     return (
-      <section>
-        <h2>{g.label}</h2>
-        <table class="member-table">
-          <thead><tr><th>氏名</th><th>役職・学年</th><th>研究キーワード</th></tr></thead>
-          <tbody>
-            {list.map(({ data }) => (
-              <tr>
-                <td>
-                  {data.photo && <img src={withBase(`/images/members/${data.photo}`)} alt={data.name} width="64" />}
-                  {data.name}{data.nameEn && <span class="muted"> ({data.nameEn})</span>}
-                </td>
-                <td>{data.role}</td>
-                <td>{data.interests.join('、')}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <section class="member-group">
+        <h2 class="group-head"><span class="en">{g.en}</span>{g.label}{list.length === 0 && <small>（準備中）</small>}</h2>
+        {list.length > 0 && (
+          <ul class={'card-flip-grid ' + (g.key === 'faculty' ? 'is-faculty' : '')}>
+            {list.map(({ data }) => {
+              const hasPhoto = data.consent && data.photo;
+              return (
+                <li class={'flip ' + (hasPhoto ? 'can-flip' : 'no-photo')} tabindex="0">
+                  <div class="flip-inner">
+                    <div class="face front">
+                      <img src={data.voxel ? img(data.voxel) : defaultVoxel} alt="" loading="lazy" />
+                      <div class="meta">
+                        <span class="role">{data.role}</span>
+                        <strong>{data.name}</strong>
+                        {data.nameEn && <span class="en">{data.nameEn}</span>}
+                      </div>
+                      {hasPhoto && <span class="hint-flip">裏面に写真</span>}
+                    </div>
+                    <div class="face back">
+                      {hasPhoto && <img src={img(data.photo!)} alt={data.name + 'の写真'} loading="lazy" />}
+                      <div class="meta">
+                        <span class="role">{data.role}{data.roleEn && <span class="en"> / {data.roleEn}</span>}</span>
+                        <strong>{data.name}</strong>
+                        {data.interests.length > 0 && <p class="keys">{data.interests.join('　')}</p>}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {g.key === 'faculty' && list.map(({ data }) => data.bio && <p class="bio">{data.bio}</p>)}
       </section>
     );
   })}
+
+  {alumni.length > 0 && (
+    <section class="member-group">
+      <h2 class="group-head"><span class="en">Alumni</span>卒業生</h2>
+      <ul class="alumni-list">{alumni.map(({ data }) => <li><strong>{data.name}</strong><span class="muted">{data.role}</span></li>)}</ul>
+    </section>
+  )}
+
+  <p class="members-contact">興味があれば <a href={site.contactFormUrl} target="_blank" rel="noopener">問い合わせフォーム</a> からお気軽にどうぞ。研究室見学・Web 面談は随時対応します。</p>
+
+  <script>
+    // スマートフォンなど、カーソルを載せられない端末では押して裏返す
+    document.addEventListener('click', (e) => {
+      const card = e.target instanceof Element ? e.target.closest('.flip.can-flip') : null; if (!card) return;
+      card.classList.toggle('flipped');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const card = document.activeElement && document.activeElement.closest && document.activeElement.closest('.flip.can-flip'); if (!card) return;
+      e.preventDefault(); card.classList.toggle('flipped');
+    });
+  </script>
 </Base>

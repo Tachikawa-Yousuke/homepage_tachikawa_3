@@ -36,7 +36,8 @@
   order: 11
   interests: []
   voxel: kuboya-voxel.png
-  # photo: kuboya.jpg       # 写真は本人同意の確認後に public/images/members/ へ入れて記入
+  photo: kuboya.jpg
+  consent: true             # 本人同意確認済み（2026-10-26 立川さん経由）
 - id: kaneko
   name: 金子 蒼太
   role: B4
@@ -44,7 +45,8 @@
   order: 20
   interests: []
   voxel: kaneko-voxel.png
-  # photo: kaneko.jpg
+  photo: kaneko.jpg
+  consent: true             # 本人同意確認済み（2026-10-26）
 - id: kudo
   name: 工藤 貴史
   role: B4
@@ -52,7 +54,8 @@
   order: 21
   interests: []
   voxel: kudo-voxel.png
-  # photo: kudo.jpg
+  photo: kudo.jpg
+  consent: true             # 本人同意確認済み（2026-10-26）
 - id: shiiba
   name: 椎葉 高史
   role: 技術職員
@@ -60,7 +63,7 @@
   order: 50
   interests: []
   voxel: shiiba-voxel.png
-  # photo: shiiba.jpg
+  # photo: shiiba.jpg       # 本人同意が未確認のため写真は未掲載
 - id: butler
   name: BUTLER Austin Thomas
   role: 特別聴講学生（北アリゾナ大学）2025.10–2026.7

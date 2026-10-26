@@ -150,7 +150,7 @@ function makeChar(opts = {}) {
   for (let y = 0; y < 6; y++) for (let i = -3; i < 3; i++) for (let k = -3; k < 3; k++) {
     let hair = y >= 4 || k <= -1 || (y >= 3 && (i === -3 || i === 2));
     if (medium) hair = hair || (k <= 0 && y >= 1) || (y === 3 && k === 2 && i >= 1);                     // 横髪は目の上まで、前髪は右端だけ
-    if (parted) hair = hair || (y >= 2 && (i === -3 || i === 2)) || (k <= 0 && y >= 2) || (y === 3 && k === 2 && i !== -1 && i !== 0);   // 真ん中だけ額が見える
+    if (parted) hair = hair || (y >= 2 && (i === -3 || i === 2)) || (k <= 0 && y >= 2) || (y === 3 && k === 2 && (i === -3 || i === 2));   // 前髪は両端だけ。額と目は見せる
     if (curly)  hair = hair || (y >= 1 && (i === -3 || i === 2)) || (k <= 0 && y >= 1) || (y === 3 && k === 2 && i !== -1 && i !== 0);   // 顔の周りを髪が囲む、額の真ん中だけ見える
     if (bangs)  hair = hair || (y === 3 && k === 2);                                                        // 前髪を額いっぱいに下ろす
     let c = hair ? ((i + y) % 3 === 0 ? (P.hairLight || P.hair) : P.hair) : P.skin;
@@ -164,8 +164,7 @@ function makeChar(opts = {}) {
     for (let i = -3; i < 3; i++) for (let k = -3; k < 2; k++) if ((i * 7 + k * 3) % 4 !== 0) head.push({ x: i + 0.5, y: 6.5, z: k + 0.5, c: P.hair });   // 頭頂のふくらみ
     for (const [i, k] of [[-4, 2], [3, 2]]) head.push({ x: i + 0.5, y: 2.5, z: k + 0.5, c: P.hair });    // 頬の横にかかる毛先
   }
-  if (HS === 'spiky') for (const [i, k] of [[-2, -1], [0, 0], [1, -2], [-1, 1], [2, -1]]) head.push({ x: i + 0.5, y: 6.5, z: k + 0.5, c: P.hair });   // 立った毛束
-  if (!curly && HS !== 'spiky') head.push({ x: 1.5, y: 6.5, z: -0.5, c: P.hair }, { x: -1.5, y: 6.5, z: 0.5, c: P.hair });
+  if (HS === 'spiky') for (let i = -2; i < 2; i++) for (let k = -2; k < 2; k++) if ((i + k) % 2 === 0) head.push({ x: i + 0.5, y: 6.5, z: k + 0.5, c: P.hair });   // 頭頂が少し立つ（市松状の薄い層）
   const headM = part(head, [0, 2.0, 0]); torso.add(headM);
   if (P.glasses) {                                                   // 眼鏡: 半分の大きさのブロックで、目の周りの枠・ブリッジ・つる
     const gv = [];
@@ -177,6 +176,16 @@ function makeChar(opts = {}) {
   g.add(legL, legR, torso);
   return { g, legL, legR, torso, armL, armR, head: headM };
 }
+
+// メンバーごとの見た目（members.yaml の id と対応）。名刺の人形と街の人形の両方で使う
+export const MEMBER_LOOKS = {
+  kimura:    { hair: 0x1c1c1c, hairLight: 0x2a2a2a, glasses: 0x1b1b1b, jacket: 0x5a4636, shirt: 0xdbe7f3, shirtShade: 0xc9d6e4, tie: 0x2f3a6c, pants: 0x3a3a40, shoe: 0x2b2b2b },
+  tachikawa: { hair: 0x151515, hairLight: 0x262626, hairStyle: 'medium', shirt: 0x262626, shirtShade: 0x171717, inner: 0xf4f4f4, pants: 0x2f3a5c, shoe: 0x2b2b2b },
+  shiiba:    { hair: 0x1a1a1a, hairLight: 0x2d2d2d, hairStyle: 'spiky', glasses: 0x1b1b1b, shirt: 0x4a4046, shirtShade: 0x332b31, pants: 0x33363d, shoe: 0x2b2b2b },
+  kuboya:    { hair: 0x3b2a1b, hairLight: 0x4e3a27, hairStyle: 'parted', shirt: 0x1e2a44, shirtShade: 0x141d33, buttons: 0x0b1020, collar: 0x2a3a60, pants: 0x3a3a40, shoe: 0x2b2b2b },
+  kudo:      { hair: 0x111111, hairLight: 0x2a2a2a, hairStyle: 'curly', shirt: 0xf4f4f4, shirtShade: 0xdcdcdc, pants: 0x2f3a5c, shoe: 0x2b2b2b },
+  kaneko:    { hair: 0x161616, hairLight: 0x262626, hairStyle: 'bangs', shirt: 0x2f4b45, shirtShade: 0x233934, pants: 0x4a6b9c, shoe: 0x3a3a3a },
+};
 
 // 1 人分の人形を透明背景の画像にする（メンバー紹介用）。opts は makeChar と同じ
 export function renderPortrait(opts = {}, { w = 600, h = 720, pose = 'stand', angle = -0.45 } = {}) {
@@ -199,7 +208,7 @@ export function renderPortrait(opts = {}, { w = 600, h = 720, pose = 'stand', an
 }
 
 // 手に持つ小物（腕の先に付ける）
-function stick(len, color) { const v = []; for (let i = 0; i < len; i++) v.push({ x: 0, y: -3 - i + 0.5, z: 0, c: color }); return makeVoxels(v, CHAR_V); }
+function bat(len, color) { const v = [{ x: 0, y: -3.5, z: -0.5, c: color }]; for (let i = 0; i < len; i++) v.push({ x: 0, y: -3.5, z: i + 0.5, c: color }); return makeVoxels(v, CHAR_V); }   // 手の位置（腕の先端）から腕と直角に伸びるバット
 
 export function createDiorama(canvas, { themeName = 'yellow', seasonName = seasonForDate(), base = '/' } = {}) {
   let t = THEMES[themeName] || THEMES.yellow;
@@ -361,14 +370,14 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   // ---- 登場人物 6 人（統一デザイン）。動きは frame() で付ける ----
   const chars = {};
   const GROUND_Y = 1;                                     // 地面の上面の高さ
-  const place = (key, x, z, ry) => { const c = makeChar(); c.g.position.set(x, GROUND_Y, z); c.g.rotation.y = ry; world.add(c.g); chars[key] = c; return c; };
-  place('catchA', -11, 18, Math.PI / 2);                  // キャッチボール（投げる側）
-  place('catchB', 1, 18, -Math.PI / 2);                   // キャッチボール（受ける側）
-  const batter = place('batter', 9, 2, Math.PI / 2);      // 素振り（大木のすぐ隣、外向き）
-  batter.armR.add(stick(5, 0xc9a06a));                    // バット
-  const climber = place('climber', 0, 0, 0);              // 木登り（幹に張り付く）
-  const runner = place('runner', 15.5, 0, 0);             // 校庭（環状の道）をマラソン
-  place('backpain', -23, 23, -0.8);                       // 腰が痛そうな人（手前左の角）
+  const place = (key, x, z, ry, look) => { const c = makeChar(MEMBER_LOOKS[look] || {}); c.g.position.set(x, GROUND_Y, z); c.g.rotation.y = ry; world.add(c.g); chars[key] = c; return c; };
+  place('catchA', -11, 18, Math.PI / 2, 'tachikawa');              // キャッチボール（投げる側）
+  place('catchB', 1, 18, -Math.PI / 2, 'kudo');                    // キャッチボール（受ける側）
+  const batter = place('batter', 9, 2, Math.PI / 2, 'shiiba');     // 素振り（大木のすぐ隣、外向き）
+  const batMesh = bat(6, 0xc9a06a); batMesh.rotation.y = 0.8; batter.armR.add(batMesh);   // バット（右手に付け、左手も同じ位置に寄せて両手持ちに見せる。肩の斜め上に構える）
+  const climber = place('climber', 0, 0, 0, 'kaneko');             // 木登り（幹に張り付く）
+  const runner = place('runner', 15.5, 0, 0, 'kuboya');            // 校庭（環状の道）をマラソン
+  place('backpain', -23, 23, -0.8, 'kimura');                      // 腰が痛そうな人（手前左の角）
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), new THREE.MeshLambertMaterial({ color: 0xffffff })); ball.castShadow = true; world.add(ball);
 
   // ---- 塔の周りを飛ぶ飛行機 ----
@@ -447,7 +456,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     // 素振り: 構え → 一気に振る → 戻す（3 秒周期）
     const bt = time % 3, sw = bt < 1.8 ? 0 : bt < 2.1 ? (bt - 1.8) / 0.3 : bt < 2.6 ? 1 : 1 - (bt - 2.6) / 0.4;
     batter.torso.rotation.y = -0.6 + sw * 1.8; batter.head.rotation.y = -0.3 + sw * 0.6;
-    batter.armR.rotation.x = -1.2 + sw * 0.4; batter.armR.rotation.z = -0.6 + sw * 1.6; batter.armL.rotation.x = -1.0; batter.armL.rotation.z = 0.3 + sw * 1.2;
+    batter.armR.rotation.x = -1.0 + sw * 0.25; batter.armR.rotation.z = -0.6; batter.armL.rotation.x = -1.0 + sw * 0.25; batter.armL.rotation.z = 0.6;   // 両腕を内側に寄せて体の前で手を合わせ、バットを両手で握る
     batter.legL.rotation.x = 0.2 - sw * 0.3; batter.legR.rotation.x = -0.1 + sw * 0.3;
     // 木登り: 幹に張り付いて上り下り。手足を交互に動かす
     const cy = 4 + (Math.sin(time * 0.35) * 0.5 + 0.5) * 9, cang = 0.9;

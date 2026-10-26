@@ -59,6 +59,7 @@ const themes = [
     </div>
 
     <SiteChrome />
+    <div class="side-band" aria-hidden="true">Mechanics for Material Design — Kyushu University</div>
 
     <div class="content">
       <!-- エントランスビュー: 左に文章、右に模型（少し文章にかかる大きさ） -->
@@ -69,6 +70,12 @@ const themes = [
           <p class="org">{site.university}<br />{site.labName}｜{site.labNameAlt}（{site.labNameShort}）</p>
         </div>
         <h1 class="hero-catch">誰もが簡単に、<br />小さなモノづくりを。</h1>
+        <ul class="hero-stats" aria-label="研究室の概要">
+          <li><b>2024</b><span>年 9 月発足</span></li>
+          <li><b>{members.filter((m) => m.data.group !== 'alumni').length}</b><span>名（教員・学生・職員）</span></li>
+          <li><b>{publications.length}</b><span>報の査読論文（2024 年以降）</span></li>
+        </ul>
+        {news[0] && <p class="hero-news"><span class="date">{fmt(news[0].data.date)}</span><span class="sep">NEWS</span>{news[0].data.title}</p>}
         <!-- 研究室紹介（各段落の先頭にキャッチフレーズ） -->
         <div class="hero-intro">
           <p><b>見えないほど小さな世界に、誰もが使えるモノづくりを。</b>当研究室は、工学イノベーションを切り拓くことをミッションに2024年9月に発足した研究室です。新たなGame changerとして原子・ナノ・マイクロといった目に見えない極小スケールにおいて、誰もが簡単に使えるモノづくり技術の創出を目指しています。</p>

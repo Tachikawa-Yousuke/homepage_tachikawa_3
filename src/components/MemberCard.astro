@@ -19,7 +19,7 @@ const front = data.voxel ? img(data.voxel) : img('default-voxel.png');
       {hasPhoto && <span class="hint-flip">裏面に写真</span>}
     </div>
     <div class="face back">
-      {hasPhoto && <img src={img(data.photo)} alt={data.name + 'の写真'} loading="lazy" />}
+      {hasPhoto && <img src={img(data.photo)} alt={data.name + 'の写真'} loading="lazy" style={data.photoPos ? '--pos: ' + data.photoPos : undefined} />}
       <div class="meta">
         <span class="role">{data.role}{data.roleEn && <span class="en"> / {data.roleEn}</span>}</span>
         <strong>{data.name}</strong>

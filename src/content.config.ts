@@ -40,7 +40,8 @@ const members = defineCollection({
     email: z.string().optional(), // 本人同意のある場合のみ
     photo: z.string().optional(), // public/images/members/ 以下。本人同意の場合のみ
     voxel: z.string().optional(), // 人形の画像（public/images/members/ 以下）。無ければ既定の人形
-    consent: z.boolean().default(false), // 写真の掲載同意を確認済みなら true（false なら写真は表示しない）
+    consent: z.boolean().default(false),
+    photoPos: z.string().optional(),      // 裏面の写真の表示位置（CSS object-position、例: 'center 30%'） // 写真の掲載同意を確認済みなら true（false なら写真は表示しない）
     interests: z.array(z.string()).default([]),
   }),
 });

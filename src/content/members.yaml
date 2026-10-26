@@ -35,25 +35,32 @@
   group: student
   order: 11
   interests: []
+  voxel: kuboya-voxel.png
+  # photo: kuboya.jpg       # 写真は本人同意の確認後に public/images/members/ へ入れて記入
 - id: kaneko
   name: 金子 蒼太
   role: B4
   group: student
   order: 20
   interests: []
+  voxel: kaneko-voxel.png
+  # photo: kaneko.jpg
 - id: kudo
   name: 工藤 貴史
   role: B4
   group: student
   order: 21
   interests: []
+  voxel: kudo-voxel.png
+  # photo: kudo.jpg
 - id: shiiba
-  name: 椎葉
+  name: 椎葉 高史
   role: 技術職員
   group: staff
   order: 50
   interests: []
   voxel: shiiba-voxel.png
+  # photo: shiiba.jpg
 - id: butler
   name: BUTLER Austin Thomas
   role: 特別聴講学生（北アリゾナ大学）2025.10–2026.7

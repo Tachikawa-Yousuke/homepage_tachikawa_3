@@ -123,7 +123,7 @@ function tree(t, x, z, s = 1, season = null) {
 const CHAR_V = 0.4;                                   // 1 ボクセルの大きさ
 const CHAR_PAL = { hair: 0x4a3222, hairLight: 0x5c4030, skin: 0xf5cba4, eye: 0x2b2b2b, shirt: 0xffffff, shirtShade: 0xe6e6e6, pants: 0x2f3a5c, shoe: 0x5a3a22 };
 function part(list, pivot) { const m = makeVoxels(list, CHAR_V); m.position.set(pivot[0], pivot[1], pivot[2]); return m; }
-// opts: hair（髪色）, skin, shirt, shirtShade, pants, shoe, glasses（眼鏡）, jacket（上着色: 指定すると胴の両脇と背中が上着色）, tie（ネクタイ色）
+// opts: hair（髪色）, hairLight, hairStyle, skin, shirt, shirtShade, pants, shoe, glasses（眼鏡色）, jacket（上着色）, tie（ネクタイ色）, inner（襟元の下着色）, buttons（ボタン色）, collar（襟色）
 function makeChar(opts = {}) {
   const g = new THREE.Group(); const P = { ...CHAR_PAL, ...opts };
   const leg = (sx) => { const v = []; for (let y = -3; y < 0; y++) for (let i = 0; i < 2; i++) for (let k = 0; k < 2; k++) v.push({ x: sx + i - 0.5, y: y + 0.5, z: k - 0.5, c: y === -3 ? P.shoe : P.pants }); return part(v, [0, 1.2, 0]); };
@@ -135,22 +135,37 @@ function makeChar(opts = {}) {
     if (P.jacket) { const front = k === 1 && Math.abs(i) <= 0; c = front ? P.shirt : P.jacket; }      // 上着: 前の中央だけシャツが見える
     if (P.tie && k === 1 && i === 0 && y >= 1 && y <= 4) c = P.tie;                                     // ネクタイ
     if (P.inner && k === 1 && Math.abs(i) <= 1 && y === 4) c = P.inner;                                  // 襟元から見える下着
+    if (P.buttons && k === 1 && i === 0 && (y === 2 || y === 3)) c = P.buttons;                           // 前立てのボタン
+    if (P.collar && k === 1 && (i === -1 || i === 1) && y === 4) c = P.collar;                            // 襟
     body.push({ x: i, y: y + 0.5, z: k, c });
   }
   torso.add(part(body, [0, 0, 0]));
   const arm = (sx) => { const v = []; for (let y = -4; y < 0; y++) v.push({ x: 0, y: y + 0.5, z: 0, c: y === -4 ? P.skin : (P.jacket || P.shirt) }); return part(v, [sx, 1.9, 0]); };
   const armL = arm(-1.25), armR = arm(1.25); torso.add(armL, armR);
   const head = [];
-  const medium = P.hairStyle === 'medium';                            // 肩にかかる長めの髪: 横と後ろが下まで髪、前髪は額の片側
+  // hairStyle: 'short'（既定）/ 'medium'（肩までの長髪、前髪は右に流す）/ 'spiky'（短髪、頭頂が少し立つ）/
+  //            'parted'（センター分けのミディアム）/ 'curly'（ボリュームのあるくせ毛）/ 'bangs'（前髪を下ろした短髪）
+  const HS = P.hairStyle || 'short';
+  const medium = HS === 'medium', parted = HS === 'parted', curly = HS === 'curly', bangs = HS === 'bangs';
   for (let y = 0; y < 6; y++) for (let i = -3; i < 3; i++) for (let k = -3; k < 3; k++) {
     let hair = y >= 4 || k <= -1 || (y >= 3 && (i === -3 || i === 2));
-    if (medium) hair = hair || (y >= 3 && (i === -3 || i === 2)) || (k <= 0 && y >= 1) || (y === 3 && k === 2 && i >= 1);   // 横髪は目の上まで、前髪は右端だけ
+    if (medium) hair = hair || (k <= 0 && y >= 1) || (y === 3 && k === 2 && i >= 1);                     // 横髪は目の上まで、前髪は右端だけ
+    if (parted) hair = hair || (y >= 2 && (i === -3 || i === 2)) || (k <= 0 && y >= 2) || (y === 3 && k === 2 && i !== -1 && i !== 0);   // 真ん中だけ額が見える
+    if (curly)  hair = hair || (y >= 1 && (i === -3 || i === 2)) || (k <= 0 && y >= 1) || (y === 3 && k === 2 && i !== -1 && i !== 0);   // 顔の周りを髪が囲む、額の真ん中だけ見える
+    if (bangs)  hair = hair || (y === 3 && k === 2);                                                        // 前髪を額いっぱいに下ろす
     let c = hair ? ((i + y) % 3 === 0 ? (P.hairLight || P.hair) : P.hair) : P.skin;
     if (!hair && y === 2 && k === 2 && (i === -2 || i === 1)) c = P.eye;
     head.push({ x: i + 0.5, y: y + 0.5, z: k + 0.5, c });
   }
-  if (medium) for (const i of [-3, 2]) for (const k of [-2, -1, 0]) head.push({ x: i + 0.5, y: -0.5, z: k + 0.5, c: P.hair });   // 襟足
-  head.push({ x: 1.5, y: 6.5, z: -0.5, c: P.hair }, { x: -1.5, y: 6.5, z: 0.5, c: P.hair });
+  if (medium || parted) for (const i of [-3, 2]) for (const k of [-2, -1, 0]) head.push({ x: i + 0.5, y: -0.5, z: k + 0.5, c: P.hair });   // 襟足
+  if (curly) {                                                       // 頭の外側にもう一層、ふくらんだ髪を足す
+    for (let y = 1; y < 7; y++) for (let k = -3; k < 2; k++) for (const i of [-4, 3]) if (!(y === 6 && k === 1)) head.push({ x: i + 0.5, y: y + 0.5, z: k + 0.5, c: (i + y + k) % 2 ? P.hair : (P.hairLight || P.hair) });
+    for (let y = 1; y < 7; y++) for (let i = -4; i < 4; i++) head.push({ x: i + 0.5, y: y + 0.5, z: -3.5, c: (i + y) % 2 ? P.hair : (P.hairLight || P.hair) });   // 後ろ
+    for (let i = -3; i < 3; i++) for (let k = -3; k < 2; k++) if ((i * 7 + k * 3) % 4 !== 0) head.push({ x: i + 0.5, y: 6.5, z: k + 0.5, c: P.hair });   // 頭頂のふくらみ
+    for (const [i, k] of [[-4, 2], [3, 2]]) head.push({ x: i + 0.5, y: 2.5, z: k + 0.5, c: P.hair });    // 頬の横にかかる毛先
+  }
+  if (HS === 'spiky') for (const [i, k] of [[-2, -1], [0, 0], [1, -2], [-1, 1], [2, -1]]) head.push({ x: i + 0.5, y: 6.5, z: k + 0.5, c: P.hair });   // 立った毛束
+  if (!curly && HS !== 'spiky') head.push({ x: 1.5, y: 6.5, z: -0.5, c: P.hair }, { x: -1.5, y: 6.5, z: 0.5, c: P.hair });
   const headM = part(head, [0, 2.0, 0]); torso.add(headM);
   if (P.glasses) {                                                   // 眼鏡: 半分の大きさのブロックで、目の周りの枠・ブリッジ・つる
     const gv = [];

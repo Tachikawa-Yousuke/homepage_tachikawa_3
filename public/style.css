@@ -184,7 +184,7 @@ address { font-style: normal; line-height: 2; }
 .face.back { background: var(--bg2); transform: rotateY(180deg); }
 .face img { width: 100%; flex: 1; min-height: 0; object-fit: cover; object-position: center top; }
 .face.front img { object-fit: contain; padding: 10px 10px 0; }
-.face .meta { padding: 10px 14px 14px; display: flex; flex-direction: column; gap: 2px; background: var(--panel); }
+.face .meta { padding: 10px 14px 14px; min-height: 108px; box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; background: var(--panel); }   /* 英語名の有無で高さが変わらないよう最小高さを揃える */
 .face .meta .role { font-size: 12px; color: var(--accent2); font-weight: 700; }
 .face .meta strong { font-size: 17px; }
 .face .meta .en { font-size: 12px; color: var(--muted); }

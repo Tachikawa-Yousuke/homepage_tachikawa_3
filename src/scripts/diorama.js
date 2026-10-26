@@ -10,19 +10,19 @@ const THEMES = {
     wire: 0xd9dde6, wireEdge: 0xffffff, atom: 0xff7a59, electron: 0x2f6fd8,
     person: [0xffffff, 0xff7a59, 0x2f6fd8, 0x5bc96a], skin: 0xf2c9a0, hair: 0x3a2a1a,
     device: 0x8a93a3, deviceLight: 0x5bc96a, letter: 0x1f2a44, sign: 0xffffff,
-    bldg: [0xf3eadb, 0xffffff, 0xe8dcc4], roof: [0x8c98a8, 0xe85c4a, 0x5f6b7a], window: 0x8fd3f4, tree: 0x3f9b3a, treeLight: 0x6fcf5a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xff7a59,
+    bldg: [0xf6a5b5, 0x55bfe8, 0x3fc9b4, 0xfff1a8, 0xffffff], roof: [0x8c98a8, 0xe85c4a, 0x2f3a5c, 0xf2a53b], window: 0xffffff, tree: 0x3f9b3a, treeLight: 0x6fcf5a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xff7a59,
     hemiSky: 0xffffff, hemiGround: 0xc8902a, sun: 0xfff2d0, sunI: 2.2, hemiI: 0.9, emissive: 0x000000 },
   navy: { bg: 0x1f2a44, base: 0xf6c945, grain: [0xffd964, 0xf2c23a, 0xffe17a, 0xe8b52e], road: 0xfff2c0,
     wire: 0xe8ecf3, wireEdge: 0xffffff, atom: 0xff7a59, electron: 0x8fd3ff,
     person: [0xffffff, 0xff7a59, 0x8fd3ff, 0x5bc96a], skin: 0xf2c9a0, hair: 0x3a2a1a,
     device: 0xb8c0cc, deviceLight: 0x5bc96a, letter: 0x1f2a44, sign: 0xffffff,
-    bldg: [0xffffff, 0xf3eadb, 0xe8dcc4], roof: [0x2f3a5c, 0xe85c4a, 0x5f6b7a], window: 0x8fd3f4, tree: 0x3f9b3a, treeLight: 0x6fcf5a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xff7a59,
+    bldg: [0xffffff, 0xf6a5b5, 0x55bfe8, 0x3fc9b4, 0xfff1a8], roof: [0x2f3a5c, 0xe85c4a, 0x5f6b7a, 0xf2a53b], window: 0xffe9a0, tree: 0x3f9b3a, treeLight: 0x6fcf5a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xff7a59,
     hemiSky: 0xcfdcff, hemiGround: 0x2a3550, sun: 0xffffff, sunI: 2.0, hemiI: 0.8, emissive: 0x000000 },
   green: { bg: 0x1f5a3a, base: 0x2f7a52, grain: [0x4fa86e, 0x5cb87a, 0x44995f, 0x6ac688], road: 0xe9e0c4,
     wire: 0xe6ebe8, wireEdge: 0xffffff, atom: 0xffd84a, electron: 0xffffff,
     person: [0xffffff, 0xffd84a, 0xff7a59, 0x8fd3ff], skin: 0xf2c9a0, hair: 0x3a2a1a,
     device: 0x9aa5a0, deviceLight: 0xffd84a, letter: 0x0f2a20, sign: 0xffffff,
-    bldg: [0xf3eadb, 0xffffff, 0xe8dcc4], roof: [0x8c98a8, 0xe85c4a, 0x5f6b7a], window: 0x8fd3f4, tree: 0x2f7a3a, treeLight: 0x5bc96a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xffd84a,
+    bldg: [0xf6a5b5, 0x55bfe8, 0xfff1a8, 0xffffff, 0x3fc9b4], roof: [0x8c98a8, 0xe85c4a, 0x2f3a5c, 0xf2a53b], window: 0xffffff, tree: 0x2f7a3a, treeLight: 0x5bc96a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xffd84a,
     hemiSky: 0xe8ffe8, hemiGround: 0x1f5a3a, sun: 0xfff6d8, sunI: 2.1, hemiI: 0.9, emissive: 0x000000 },
   black: { bg: 0x0a0a0c, base: 0x161922, grain: [0x262b3a, 0x2d3345, 0x20242f, 0x343a4e], road: 0x3a3f4e,
     wire: 0xcfd4de, wireEdge: 0xffffff, atom: 0xffd84a, electron: 0x5ad6ff,
@@ -215,7 +215,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   let season = SEASONS[seasonName] || SEASONS.autumn;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
@@ -224,7 +224,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
 
   const hemi = new THREE.HemisphereLight(t.hemiSky, t.hemiGround, t.hemiI); scene.add(hemi);
   const sun = new THREE.DirectionalLight(t.sun, t.sunI); sun.position.set(60, 90, 40); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -60, right: 60, top: 90, bottom: -60, far: 300 }); sun.shadow.bias = -0.0005;
+  sun.shadow.mapSize.set(4096, 4096); Object.assign(sun.shadow.camera, { left: -120, right: 120, top: 140, bottom: -120, far: 400 }); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
   scene.add(sun);
   const rim = new THREE.DirectionalLight(0xffffff, 0.5); rim.position.set(-40, 30, -40); scene.add(rim);
 
@@ -246,7 +246,10 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     groundHolder.clear();
     groundHolder.add(makeVoxels(groundVox.map((v) => ({ ...v, c: v.top ? (v.road ? t.road : season.ground[v.gi]) : t.base })), 1));
   }
-  const edge = new THREE.Mesh(new THREE.BoxGeometry(N * 2 + 2, 1, N * 2 + 2), new THREE.MeshLambertMaterial({ color: t.base })); edge.position.y = -3; edge.receiveShadow = true; world.add(edge);
+  const edge = new THREE.Mesh(new THREE.BoxGeometry(N * 2 + 2, 1, N * 2 + 2), new THREE.MeshLambertMaterial({ color: t.base })); edge.position.y = -3; edge.receiveShadow = true; edge.castShadow = true; world.add(edge);
+  // 模型全体の影を、背景色の床（見えない受け皿）に落とす。参考サイトの「紙の上に置いた模型」の見え方
+  const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.ShadowMaterial({ opacity: 0.16 }));
+  shadowCatcher.rotation.x = -Math.PI / 2; shadowCatcher.position.y = -3.6; shadowCatcher.receiveShadow = true; scene.add(shadowCatcher);
 
   // ---- 大木。様式（TREE_STYLES）で幹・枝・樹冠の形が変わり、葉と雪は季節で作り直す ----
   let TREE_H = 40;                                     // 樹冠の最上部の高さ（目印の位置計算にも使う）
@@ -351,6 +354,11 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       ...building(t, 20, 15, 8, 4, 7, 1, 1),       // 食堂（赤い屋根）
       ...building(t, -21, 8, 6, 3, 6, 1, 1),       // 売店
       ...building(t, -21, 17, 6, 4, 6, 0, 2),      // 小さな建物
+      ...building(t, -6, -21, 6, 9, 6, 0, 3),      // 高い建物（ピンク）
+      ...building(t, 6, -21, 6, 6, 5, 2, 1),       // 中くらいの建物（ミント）
+      ...building(t, 24, -6, 5, 5, 5, 3, 0),       // 黄色い建物
+      ...building(t, -24, -4, 4, 6, 5, 1, 2),      // 水色の細い建物
+      ...building(t, 7, 22, 6, 5, 5, 4, 1),        // 白い建物（手前）
     ];
     // 電子顕微鏡（塔の右奥）
     for (let y = 0; y < 6; y++) for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) v.push({ x: 12 + dx, y: y + 0.5, z: -8 + dz, c: y === 5 ? t.deviceLight : t.device });
@@ -494,7 +502,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     const dTown = Math.max(dVert, dHoriz(wide ? 0.8 : 1)) * (wide ? 0.86 : 0.95);
     const d = dHero + (dTown - dHero) * pe;
     const fw = camera.getFilmWidth();
-    camera.filmOffset = wide ? -fw * (0.19 * (1 - pe) + 0.12 * pe) : 0;
+    camera.filmOffset = wide ? -fw * (0.23 * (1 - pe) + 0.12 * pe) : 0;   // エントランスでは文章と重ならないよう右に寄せる
     camera.position.set(0, CENTER_Y + d * 0.36, d); camera.lookAt(0, CENTER_Y, 0); camera.updateProjectionMatrix();
     world.position.set(0, wide ? 0 : -20 * (1 - pe), 0);
     // 自転: ヒーローではやや速く、タウンビューではゆっくり。ドラッグ中は止め、離すと惰性のあと再開

@@ -1,19 +1,19 @@
 /* 3D ジオラマ版トップ。テーマは <html data-theme="yellow|black"> で切替。 */
 :root, :root[data-theme="yellow"] {
-  --bg: #f9ebb5; --bg2: #fdf3cf; --text: #1f2a44; --muted: #5a5f6e; --accent: #2f6fd8; --accent2: #f0785a;
+  --bg: #f6c945; --bg2: #ffd964; --text: #1f2a44; --muted: #5a5f6e; --accent: #2f6fd8; --accent2: #ff7a59;
   --panel: rgba(255,255,255,0.88); --line: rgba(31,42,68,0.15);
 }
 :root[data-theme="navy"] {
-  --bg: #34456b; --bg2: #3d4f78; --text: #ffe9a8; --muted: #f3e6c0; --accent: #ffe9a8; --accent2: #ff9a7a;
-  --panel: rgba(52,69,107,0.86); --line: rgba(255,233,168,0.25);
+  --bg: #1f2a44; --bg2: #26325a; --text: #ffd964; --muted: #ffe9a0; --accent: #ffd964; --accent2: #ff7a59;
+  --panel: rgba(31,42,68,0.86); --line: rgba(255,217,100,0.25);
 }
 :root[data-theme="green"] {
-  --bg: #3f7a5a; --bg2: #4a8a68; --text: #ffffff; --muted: #e0eee6; --accent: #ffffff; --accent2: #ffe07a;
-  --panel: rgba(63,122,90,0.86); --line: rgba(255,255,255,0.2);
+  --bg: #1f5a3a; --bg2: #276a46; --text: #ffffff; --muted: #d6e8dc; --accent: #ffffff; --accent2: #ffd84a;
+  --panel: rgba(31,90,58,0.86); --line: rgba(255,255,255,0.2);
 }
 :root[data-theme="black"] {
-  --bg: #26262c; --bg2: #30303a; --text: #f4f4f8; --muted: #b4b8c6; --accent: #ffe07a; --accent2: #7fdcff;
-  --panel: rgba(38,38,44,0.82); --line: rgba(255,255,255,0.14);
+  --bg: #0a0a0c; --bg2: #141418; --text: #f4f4f8; --muted: #a0a4b4; --accent: #ffd84a; --accent2: #5ad6ff;
+  --panel: rgba(20,20,26,0.82); --line: rgba(255,255,255,0.14);
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -74,10 +74,10 @@ a { color: inherit; text-decoration: none; }
 .season-btn { font: inherit; font-size: 13px; font-weight: 700; width: 36px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
 .season-btn.on { background: var(--text); color: var(--bg); }
 .theme-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.7); cursor: pointer; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
-.theme-dot[data-theme-key="yellow"] { background: #f9ebb5; }
-.theme-dot[data-theme-key="navy"] { background: #34456b; }
-.theme-dot[data-theme-key="green"] { background: #3f7a5a; }
-.theme-dot[data-theme-key="black"] { background: #26262c; }
+.theme-dot[data-theme-key="yellow"] { background: #f6c945; }
+.theme-dot[data-theme-key="navy"] { background: #1f2a44; }
+.theme-dot[data-theme-key="green"] { background: #1f5a3a; }
+.theme-dot[data-theme-key="black"] { background: #0a0a0c; }
 .theme-dot.on { outline: 3px solid var(--accent2); outline-offset: 1px; }
 
 /* 左から出るナビのモーダルと、本体にかかる薄い影 */
@@ -128,28 +128,26 @@ a { color: inherit; text-decoration: none; }
 .footer { padding: 24px 0 32px; font-size: 13px; color: var(--muted); }
 
 /* エントランスビュー（最初の画面）: 左に文章、右は模型 */
-.hero { position: relative; display: block; padding: 0 20px 16vh; }
-.hero-first { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }   /* 最初の画面: キャッチコピーと研究室名を上下中央に */
-.hero-more { padding-top: 6vh; }
+.hero { position: relative; min-height: 100vh; display: block; padding: calc(50vh - 40px) 20px 16vh; }   /* 研究室名の中心が画面の上下中央に来る */
 .hero-top { position: static; }
-.hero .lab-name { font-size: clamp(22px, 2.8vw, 36px); font-weight: 900; line-height: 1.3; margin: 36px 0 0; letter-spacing: 0.04em; }
+.hero .lab-name { font-size: clamp(34px, 5.5vw, 64px); font-weight: 900; line-height: 1.2; margin: 0 0 6px; letter-spacing: 0.02em; }
 .hero .label { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin: 0; }
-.hero-catch { position: static; font-size: clamp(34px, 4.6vw, 62px); line-height: 1.35; margin: 0; font-weight: 900; letter-spacing: 0.01em; }
+.hero-catch { position: static; font-size: clamp(26px, 3.2vw, 40px); line-height: 1.45; margin: 64px 0 0; font-weight: 900; }
 .hero .lead { position: static; font-size: clamp(13px, 1.1vw, 15px); color: var(--muted); margin: 40px 0 0; line-height: 1.6; }
 .hero .lead p { margin: 0 0 .7em; white-space: nowrap; }   /* 1 文 1 行。折り返さず、行間に空白行 */
 .hero .lead p.stanza { margin-top: 1.8em; }                 /* 連の区切り */
 .hero .lead p:last-child { margin-bottom: 0; }
-.hero .org { font-size: 12px; color: var(--muted); margin: 10px 0 0; line-height: 1.7; }
+.hero .org { font-size: 12px; color: var(--muted); margin: 14px 0 0; line-height: 1.7; }
 /* 研究室紹介（詩の下）。各段落の先頭に太字のキャッチフレーズ。模型と重ならない幅に抑える */
-.hero-intro { max-width: min(620px, 50vw); margin: 64px 0 0; font-size: clamp(13px, 1.05vw, 15px); line-height: 1.95; }
+.hero-intro { max-width: min(860px, 62vw); margin: 64px 0 0; font-size: clamp(14px, 1.1vw, 16px); line-height: 1.95; }
 .hero-intro p { margin: 0 0 1.6em; }
 .hero-intro p:last-child { margin-bottom: 0; }
-.hero-intro b { display: block; font-size: 1.2em; font-weight: 900; line-height: 1.5; margin-bottom: .3em; }
+.hero-intro b { display: block; font-size: clamp(20px, 1.9vw, 28px); font-weight: 900; line-height: 1.45; margin-bottom: .4em; }
 .hero-intro a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 .btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 700; font-size: 15px; transition: transform .15s, opacity .15s; }
 .btn:hover { transform: translateY(-2px); opacity: .9; }
 .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--text); }
-@media (max-width: 900px) { .hero-first { min-height: 80vh; } .hero .lead { margin-top: 24px; } .hero-intro { max-width: none; } }
+@media (max-width: 900px) { .hero { padding-top: 120px; } .hero-catch { margin-top: 24px; } .hero-intro { max-width: none; } }
 
 /* 各節: 半透明のパネルで模型の上に載せる */
 .section { padding: 48px 0; }

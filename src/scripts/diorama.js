@@ -6,25 +6,25 @@ import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
 
 const THEMES = {
-  yellow: { bg: 0xf9ebb5, base: 0x2f3a5c, grain: [0x4a5a8a, 0x55679c, 0x3f4f80, 0x5f72a8], road: 0xe9dfc2,
+  yellow: { bg: 0xf6c945, base: 0x2f3a5c, grain: [0x4a5a8a, 0x55679c, 0x3f4f80, 0x5f72a8], road: 0xe9dfc2,
     wire: 0xd9dde6, wireEdge: 0xffffff, atom: 0xff7a59, electron: 0x2f6fd8,
     person: [0xffffff, 0xff7a59, 0x2f6fd8, 0x5bc96a], skin: 0xf2c9a0, hair: 0x3a2a1a,
     device: 0x8a93a3, deviceLight: 0x5bc96a, letter: 0x1f2a44, sign: 0xffffff,
     bldg: [0xf3eadb, 0xffffff, 0xe8dcc4], roof: [0x8c98a8, 0xe85c4a, 0x5f6b7a], window: 0x8fd3f4, tree: 0x3f9b3a, treeLight: 0x6fcf5a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xff7a59,
-    hemiSky: 0xffffff, hemiGround: 0xd8b060, sun: 0xfff2d0, sunI: 2.2, hemiI: 0.9, emissive: 0x000000 },
-  navy: { bg: 0x34456b, base: 0xf6c945, grain: [0xffd964, 0xf2c23a, 0xffe17a, 0xe8b52e], road: 0xfff2c0,
+    hemiSky: 0xffffff, hemiGround: 0xc8902a, sun: 0xfff2d0, sunI: 2.2, hemiI: 0.9, emissive: 0x000000 },
+  navy: { bg: 0x1f2a44, base: 0xf6c945, grain: [0xffd964, 0xf2c23a, 0xffe17a, 0xe8b52e], road: 0xfff2c0,
     wire: 0xe8ecf3, wireEdge: 0xffffff, atom: 0xff7a59, electron: 0x8fd3ff,
     person: [0xffffff, 0xff7a59, 0x8fd3ff, 0x5bc96a], skin: 0xf2c9a0, hair: 0x3a2a1a,
     device: 0xb8c0cc, deviceLight: 0x5bc96a, letter: 0x1f2a44, sign: 0xffffff,
     bldg: [0xffffff, 0xf3eadb, 0xe8dcc4], roof: [0x2f3a5c, 0xe85c4a, 0x5f6b7a], window: 0x8fd3f4, tree: 0x3f9b3a, treeLight: 0x6fcf5a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xff7a59,
     hemiSky: 0xcfdcff, hemiGround: 0x2a3550, sun: 0xffffff, sunI: 2.0, hemiI: 0.8, emissive: 0x000000 },
-  green: { bg: 0x3f7a5a, base: 0x2f7a52, grain: [0x4fa86e, 0x5cb87a, 0x44995f, 0x6ac688], road: 0xe9e0c4,
+  green: { bg: 0x1f5a3a, base: 0x2f7a52, grain: [0x4fa86e, 0x5cb87a, 0x44995f, 0x6ac688], road: 0xe9e0c4,
     wire: 0xe6ebe8, wireEdge: 0xffffff, atom: 0xffd84a, electron: 0xffffff,
     person: [0xffffff, 0xffd84a, 0xff7a59, 0x8fd3ff], skin: 0xf2c9a0, hair: 0x3a2a1a,
     device: 0x9aa5a0, deviceLight: 0xffd84a, letter: 0x0f2a20, sign: 0xffffff,
     bldg: [0xf3eadb, 0xffffff, 0xe8dcc4], roof: [0x8c98a8, 0xe85c4a, 0x5f6b7a], window: 0x8fd3f4, tree: 0x2f7a3a, treeLight: 0x5bc96a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xffd84a,
     hemiSky: 0xe8ffe8, hemiGround: 0x1f5a3a, sun: 0xfff6d8, sunI: 2.1, hemiI: 0.9, emissive: 0x000000 },
-  black: { bg: 0x26262c, base: 0x161922, grain: [0x262b3a, 0x2d3345, 0x20242f, 0x343a4e], road: 0x3a3f4e,
+  black: { bg: 0x0a0a0c, base: 0x161922, grain: [0x262b3a, 0x2d3345, 0x20242f, 0x343a4e], road: 0x3a3f4e,
     wire: 0xcfd4de, wireEdge: 0xffffff, atom: 0xffd84a, electron: 0x5ad6ff,
     person: [0xf4f4f4, 0xffd84a, 0x5ad6ff, 0xff7a59], skin: 0xf2c9a0, hair: 0x2a2a2a,
     device: 0x5a6070, deviceLight: 0x5ad6ff, letter: 0xffd84a, sign: 0xf4f4f4,
@@ -387,7 +387,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   for (let z = -4; z <= 4; z++) planeVox.push({ x: 0, y: 0, z, k: z === 0 ? 'body' : 'accent' }); // 主翼
   planeVox.push({ x: -3, y: 1, z: 0, k: 'accent' }, { x: -3, y: 0, z: -1, k: 'body' }, { x: -3, y: 0, z: 1, k: 'body' }); // 尾翼
   planeVox.push({ x: 3, y: 0, z: 0, k: 'nose' });                                                // 機首
-  world.add(plane);                                                                              // 色は applyTheme で付ける
+  // world.add(plane);   // 飛行機は 2026-10-26 のユーザー要望で非表示（コードは残置。戻すときはこの行を有効にする）
 
   // ---- クリックできる目印（模型のローカル座標）。4 つ目が true なら塔の伸びに追従 ----
   const HOTSPOTS = {

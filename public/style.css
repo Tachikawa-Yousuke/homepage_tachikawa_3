@@ -128,20 +128,31 @@ a { color: inherit; text-decoration: none; }
 .footer { padding: 24px 0 32px; font-size: 13px; color: var(--muted); }
 
 /* エントランスビュー（最初の画面）: 左に文章、右は模型 */
-.hero { position: relative; min-height: 100vh; display: block; padding: 26vh 20px 16vh; }   /* 小見出しは画面の約 1/4、大見出しが画面中央付近に来る */
+.hero { position: relative; display: block; padding: 0 20px 16vh; --catch: clamp(38px, 4.1vw, 58px); }   /* キャッチコピーは 10 文字が画面幅の約 41% に収まる大きさ（右半分の模型に被らない） */
+.hero-first { position: relative; height: 100vh; }                       /* 最初の画面: 名称（上）・キャッチコピー（中央）・問い合わせ（その下） */
+.hero-first .hero-top { position: absolute; left: 0; top: 11vh; }
 .hero-top { position: static; }
-.hero .org-top { font-size: 13px; color: var(--muted); margin: 0 0 6px; font-weight: 700; letter-spacing: 0.06em; }
-.hero .lab-name { font-size: clamp(22px, 2.2vw, 30px); font-weight: 900; line-height: 1.3; margin: 0 0 8px; letter-spacing: 0.04em; }
-.hero .label { font-size: 13px; letter-spacing: 0.12em; text-transform: none; color: var(--muted); margin: 0; font-weight: 700; line-height: 1.7; }
-.hero-catch { position: static; font-size: clamp(40px, 4.4vw, 62px); line-height: 1.4; margin: 14vh 0 0; font-weight: 900; letter-spacing: 0.01em; }
+.hero .org-top { font-size: 15px; color: var(--muted); margin: 0 0 8px; font-weight: 700; letter-spacing: 0.06em; }
+.hero .lab-name { font-size: clamp(28px, 2.9vw, 40px); font-weight: 900; line-height: 1.3; margin: 0 0 10px; letter-spacing: 0.04em; }
+.hero .label { font-size: 15px; letter-spacing: 0.1em; text-transform: none; color: var(--muted); margin: 0; font-weight: 700; line-height: 1.7; }
+.hero-catch { position: absolute; left: 0; top: 50%; transform: translateY(-50%); font-size: var(--catch); line-height: 1.4; margin: 0; font-weight: 900; letter-spacing: 0.01em; white-space: nowrap; }   /* 画面の上下中央 */
+/* 問い合わせフォームの長方形ボックス: キャッチコピーのすぐ下（キャッチコピー 2 行分の高さを計算して置く） */
+.hero-cta { position: absolute; left: 0; top: calc(50% + var(--catch) * 1.4 + 28px); display: inline-flex; flex-direction: column; gap: 2px; padding: 14px 26px; background: var(--text); color: var(--bg); border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); transition: transform .15s, box-shadow .15s; }
+.hero-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0,0,0,0.22); }
+.hero-cta .cta-main { font-size: 17px; font-weight: 900; letter-spacing: 0.04em; }
+.hero-cta .cta-sub { font-size: 11px; letter-spacing: 0.08em; opacity: .85; }
 .hero .lead { position: static; font-size: clamp(13px, 1.1vw, 15px); color: var(--muted); margin: 40px 0 0; line-height: 1.6; }
 .hero .lead p { margin: 0 0 .7em; white-space: nowrap; }   /* 1 文 1 行。折り返さず、行間に空白行 */
 .hero .lead p.stanza { margin-top: 1.8em; }                 /* 連の区切り */
 .hero .lead p:last-child { margin-bottom: 0; }
-.hero .org { font-size: 12px; color: var(--muted); margin: 2px 0 0; line-height: 1.8; letter-spacing: 0.04em; }
+.hero .org { font-size: 14px; color: var(--muted); margin: 2px 0 0; line-height: 1.8; letter-spacing: 0.04em; }
 /* A-1 登場アニメーション: 研究室名 → 英語名 → 所属 → キャッチコピー → 数字 → お知らせ → 紹介文 の順に下からふわっと出す */
 @keyframes riseIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-.hero .org-top, .hero .lab-name, .hero .label, .hero .org, .hero-catch, .hero-stats, .hero-news, .hero-intro { animation: riseIn .8s cubic-bezier(.2,.7,.2,1) both; }
+.hero .org-top, .hero .lab-name, .hero .label, .hero .org, .hero-catch, .hero-cta, .hero-stats, .hero-news, .hero-intro { animation: riseIn .8s cubic-bezier(.2,.7,.2,1) both; }
+.hero-cta { animation-name: riseInCta; animation-delay: .8s; }
+@keyframes riseInCta { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.hero-catch { animation-name: riseInCenter; }
+@keyframes riseInCenter { from { opacity: 0; transform: translateY(calc(-50% + 18px)); } to { opacity: 1; transform: translateY(-50%); } }
 .hero .label { animation-delay: .25s; } .hero .org { animation-delay: .4s; } .hero-catch { animation-delay: .6s; }
 .hero-stats { animation-delay: .8s; } .hero-news { animation-delay: 1s; } .hero-intro { animation-delay: 1.1s; }
 @media (prefers-reduced-motion: reduce) { .hero .lab-name, .hero .label, .hero .org, .hero-catch, .hero-stats, .hero-news, .hero-intro { animation: none; } }
@@ -159,7 +170,7 @@ a { color: inherit; text-decoration: none; }
 .hero-news .date { font-weight: 700; color: var(--muted); letter-spacing: .06em; font-size: 12px; }
 .hero-news .sep { font-size: 10px; letter-spacing: .25em; font-weight: 900; color: var(--accent2); border: 1px solid var(--accent2); padding: 1px 8px; border-radius: 999px; }
 /* 研究室紹介（詩の下）。各段落の先頭に太字のキャッチフレーズ。模型と重ならない幅に抑える */
-.hero-intro { max-width: min(640px, 44vw); margin: 12vh 0 0; font-size: clamp(16px, 1.3vw, 20px); line-height: 2.1; }
+.hero-intro { max-width: min(600px, 40vw); margin: 8vh 0 0; font-size: clamp(16px, 1.3vw, 20px); line-height: 2.1; }   /* 2 画面目から。右半分の模型に被らない幅 */
 .hero-intro p { margin: 0 0 3em; }
 .hero-intro p:last-child { margin-bottom: 0; }
 .hero-intro b { display: block; font-size: clamp(26px, 2.5vw, 36px); font-weight: 900; line-height: 1.45; margin-bottom: .7em; letter-spacing: 0.02em; }
@@ -167,7 +178,7 @@ a { color: inherit; text-decoration: none; }
 .btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px 22px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 700; font-size: 15px; transition: transform .15s, opacity .15s; }
 .btn:hover { transform: translateY(-2px); opacity: .9; }
 .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--text); }
-@media (max-width: 900px) { .hero { padding-top: 120px; } .hero-catch { margin-top: 24px; } .hero-intro { max-width: none; } }
+@media (max-width: 900px) { .hero-first { height: auto; padding-top: 120px; } .hero-first .hero-top, .hero-catch, .hero-cta { position: static; transform: none; } .hero-catch { margin: 32px 0 20px; white-space: normal; animation-name: riseIn; } .hero-intro { max-width: none; } }
 
 /* 各節: 半透明のパネルで模型の上に載せる */
 .section { padding: 48px 0; }

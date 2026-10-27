@@ -63,14 +63,17 @@ const themes = [
     <div class="content">
       <!-- エントランスビュー: 左に文章、右に模型（少し文章にかかる大きさ） -->
       <section class="hero wrap" id="entrance">
-        <div class="hero-top">
-          <p class="org-top">九州大学大学院 工学研究院 機械工学部門</p>
-          <p class="lab-name">材料創製力学研究室｜木村研究室</p>
-          <p class="label">Mechanics for Material Design (M2D) Lab</p>
-          <p class="label">KIMURA Laboratory</p>
-          <p class="org">Department of Mechanical Engineering, Kyushu University</p>
+        <!-- 最初の画面: 名称・キャッチコピー・問い合わせボックス・模型だけ -->
+        <div class="hero-first">
+          <div class="hero-top">
+            <p class="org-top">九州大学大学院 工学研究院 機械工学部門</p>
+            <p class="lab-name">材料創製力学研究室｜木村研究室</p>
+            <p class="label">Mechanics for Material Design (M2D) Lab | KIMURA Laboratory</p>
+            <p class="org">Department of Mechanical Engineering, Kyushu University</p>
+          </div>
+          <h1 class="hero-catch">誰もが簡単に、<br />小さなモノづくりを。</h1>
+          <a class="hero-cta" href={site.contactFormUrl} target="_blank" rel="noopener"><span class="cta-main">お問い合わせフォーム ▶</span><span class="cta-sub">研究室見学・Web 面談は随時受付中</span></a>
         </div>
-        <h1 class="hero-catch">誰もが簡単に、<br />小さなモノづくりを。</h1>
         <!-- 研究室紹介（各段落の先頭にキャッチフレーズ） -->
         <div class="hero-intro">
           <p><b>見えないほど小さな世界に、誰もが使えるモノづくりを。</b>当研究室は、工学イノベーションを切り拓くことをミッションに2024年9月に発足した研究室です。新たなGame changerとして原子・ナノ・マイクロといった目に見えない極小スケールにおいて、誰もが簡単に使えるモノづくり技術の創出を目指しています。</p>

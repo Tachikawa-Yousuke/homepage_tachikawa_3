@@ -223,7 +223,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   scene.add(camera);
 
   const hemi = new THREE.HemisphereLight(t.hemiSky, t.hemiGround, t.hemiI); scene.add(hemi);
-  const sun = new THREE.DirectionalLight(t.sun, t.sunI); sun.position.set(60, 90, 40); sun.castShadow = true;
+  const sun = new THREE.DirectionalLight(t.sun, t.sunI); sun.position.set(-60, 36, -8); sun.castShadow = true;   // 低い太陽（左やや奥）で影を右へ長く伸ばす（高さの約 1.7 倍）
   sun.shadow.mapSize.set(4096, 4096); Object.assign(sun.shadow.camera, { left: -120, right: 120, top: 140, bottom: -120, far: 400 }); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
   scene.add(sun);
   const rim = new THREE.DirectionalLight(0xffffff, 0.5); rim.position.set(-40, 30, -40); scene.add(rim);
@@ -248,7 +248,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   }
   const edge = new THREE.Mesh(new THREE.BoxGeometry(N * 2 + 2, 0.25, N * 2 + 2), new THREE.MeshLambertMaterial({ color: t.base })); edge.position.y = -0.125; edge.receiveShadow = true; edge.castShadow = true; world.add(edge);   // 薄い縁
   // 模型全体の影を、背景色の床（見えない受け皿）に落とす。参考サイトの「紙の上に置いた模型」の見え方
-  const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.ShadowMaterial({ opacity: 0.16 }));
+  const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.ShadowMaterial({ opacity: 0.2 }));
   shadowCatcher.rotation.x = -Math.PI / 2; shadowCatcher.position.y = -0.3; shadowCatcher.receiveShadow = true; scene.add(shadowCatcher);
 
   // ---- 大木。様式（TREE_STYLES）で幹・枝・樹冠の形が変わり、葉と雪は季節で作り直す ----
@@ -432,7 +432,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
 
   // 模型のおおよその大きさ（カメラ距離の計算用）
-  const HALF_W = 44, HALF_H = 38, CENTER_Y = 17;
+  const HALF_W = 50, HALF_H = 38, CENTER_Y = 17;   // HALF_W は土台の対角線（公転でどの向きでも収まる大きさ）
   let orbit = 0;                                          // 観測者（カメラ）が模型の周りを回る角度。模型自体は回さない
   const timer = new THREE.Timer();
   const m4 = new THREE.Matrix4();
@@ -505,11 +505,11 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     const dHoriz = (f) => HALF_W / (tanV * camera.aspect * f) * 1.08;
     // 最上部（ヒーロー）: 右半分に収まる距離。タウンビュー: 画面を大きく使い、やや右寄せで少しはみ出す
     // エントランスビュー: 右寄りだが大きめで、左の文章領域に少しかかる。タウンビュー: 画面を大きく使い、やや右寄せ
-    const dHero = Math.max(dVert, dHoriz(wide ? 0.64 : 1)) * (wide ? 0.95 : 1);
+    const dHero = Math.max(dVert, dHoriz(wide ? 0.5 : 1)) * (wide ? 0.98 : 1);   // エントランス: 画面の右半分に収める
     const dTown = Math.max(dVert, dHoriz(wide ? 0.8 : 1)) * (wide ? 0.98 : 1.0);   // 画面に見切れない大きさ
     const d = dHero + (dTown - dHero) * pe;
     const fw = camera.getFilmWidth();
-    camera.filmOffset = wide ? -fw * (0.23 * (1 - pe) + 0.12 * pe) : 0;   // エントランスでは文章と重ならないよう右に寄せる
+    camera.filmOffset = wide ? -fw * (0.255 * (1 - pe) + 0.12 * pe) : 0;   // エントランスでは中心を画面幅の約 75% に置く（右半分の中央）
     camera.position.set(Math.sin(orbit) * d, CENTER_Y + d * 0.24, Math.cos(orbit) * d); camera.lookAt(0, CENTER_Y, 0); camera.updateProjectionMatrix();   // 月が地球を回るように、カメラが周回
     world.position.set(0, wide ? 0 : -20 * (1 - pe), 0);
     // 自転: ヒーローではやや速く、タウンビューではゆっくり。ドラッグ中は止め、離すと惰性のあと再開
@@ -560,7 +560,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
 
   function applyTheme(name) {
     t = THEMES[name] || THEMES.yellow;
-    scene.background = new THREE.Color(t.bg); scene.fog = new THREE.Fog(t.bg, 160, 320);
+    scene.background = new THREE.Color(t.bg); scene.fog = new THREE.Fog(t.bg, 420, 760);   // カメラ距離が 250 前後まで伸びたので、霧は遠くに（近いと模型と影が背景色に溶けて薄くなる）
     hemi.color.set(t.hemiSky); hemi.groundColor.set(t.hemiGround); hemi.intensity = t.hemiI; sun.color.set(t.sun); sun.intensity = t.sunI;
     edge.material.color.set(t.base); buildGround(); buildSmallTrees();
     for (const th of themed) { th.holder.clear(); th.fn(t).forEach((m) => th.holder.add(m)); }

@@ -367,7 +367,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       ...building(t, -27, -25, 8, 5, 7, 0, 0),     // 外周: ピンク
       ...building(t, 27, -22, 7, 8, 6, 1, 3),      // 外周: 水色の高い建物
       ...building(t, 29, 8, 6, 4, 6, 3, 1),        // 外周: 黄色
-      ...building(t, -28, 24, 7, 6, 6, 2, 2),      // 外周: ミント
+      ...building(t, -30, -14, 7, 6, 6, 2, 2),     // 外周: ミント（ランニングコースを避けて左奥へ）
       ...building(t, -10, -28, 10, 4, 7, 4, 0),    // 外周: 白い長い建物
       ...building(t, 22, 27, 6, 5, 5, 0, 1),       // 外周: ピンク（手前右）
       ...building(t, 20, -27, 5, 14, 5, 1, 2),     // 高い建物（水色、奥）
@@ -386,20 +386,21 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   });
   // 小さな木（季節で色が変わる）
   const smallTreesHolder = new THREE.Group(); world.add(smallTreesHolder);
-  const SMALL_TREES = [[-15, -21], [14, -22], [-24, -2], [24, 4], [12, 22], [2, 23], [-12, 23], [-20, -28], [-3, -24], [28, -10], [-29, 12], [16, 28], [-22, 28], [31, 23]];   // 建物と重ならない位置
+  const SMALL_TREES = [[-15, -21], [14, -22], [-24, -2], [24, 4], [12, 22], [2, 23], [-12, 23], [-20, -28], [-3, -24], [28, -10], [-29, 12], [16, 28], [-22, 28], [31, 28]];   // 建物・コースと重ならない位置
   function buildSmallTrees() { smallTreesHolder.clear(); smallTreesHolder.add(makeVoxels(SMALL_TREES.flatMap(([x, z]) => tree(t, x, z, 1, season)), 1)); }
 
   // ---- 登場人物 6 人（統一デザイン）。動きは frame() で付ける ----
   const chars = {};
   const GROUND_Y = 0.3;                                   // 地面の上面の高さ（groundHolder.scale.y と合わせる）
-  const place = (key, x, z, ry, look) => { const c = makeChar(MEMBER_LOOKS[look] || {}); c.g.position.set(x, GROUND_Y, z); c.g.rotation.y = ry; world.add(c.g); chars[key] = c; return c; };
-  place('catchA', -11, 18, Math.PI / 2, 'tachikawa');              // キャッチボール（投げる側）
-  place('catchB', 1, 18, -Math.PI / 2, 'kudo');                    // キャッチボール（受ける側）
+  const PAGE_Y = -0.3;                                    // 土台の外（背景の床）の高さ
+  const place = (key, x, z, ry, look, y = GROUND_Y) => { const c = makeChar(MEMBER_LOOKS[look] || {}); c.g.position.set(x, y, z); c.g.rotation.y = ry; world.add(c.g); chars[key] = c; return c; };
+  place('catchA', 8, 22, Math.PI / 2, 'tachikawa');                // キャッチボール（投げる側、土台の上）
+  place('catchB', 41, 22, -Math.PI / 2, 'kudo', PAGE_Y);           // キャッチボール（受ける側、土台の外の床に立つ）
   const batter = place('batter', 9, 2, Math.PI / 2, 'shiiba');     // 素振り（大木のすぐ隣、外向き）
   const batMesh = bat(6, 0xc9a06a); batMesh.rotation.y = 0.8; batter.armR.add(batMesh);   // バット（右手に付け、左手も同じ位置に寄せて両手持ちに見せる。肩の斜め上に構える）
   const climber = place('climber', 0, 0, 0, 'kaneko');             // 木登り（幹に張り付く）
   const runner = place('runner', 15.5, 0, 0, 'kuboya');            // 校庭（環状の道）をマラソン
-  place('backpain', -23, 23, -0.8, 'kimura');                      // 腰が痛そうな人（手前左の角）
+  place('backpain', -41, 22, -0.8, 'kimura', PAGE_Y);              // 腰が痛そうな人（土台の外、手前左）
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), new THREE.MeshLambertMaterial({ color: 0xffffff })); ball.castShadow = true; world.add(ball);
 
   // ---- 塔の周りを飛ぶ飛行機 ----
@@ -440,8 +441,9 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
 
   // 模型のおおよその大きさ（カメラ距離の計算用）
-  const HALF_W = 47, HALF_H = 38, CENTER_Y = 17;   // HALF_W は土台の半対角線（33×√2 ≈ 46.7）。公転でどの向きでも収まる
-  const ROLL = 0.07;                                    // カメラをわずかに傾ける（rad）。模型が斜めに置かれた立体に見える
+  const HALF_W = 49, HALF_H = 38, CENTER_Y = 17;   // HALF_W は土台の半対角線（≈ 46.7）＋外に立つ人形の分。公転でどの向きでも収まる
+  const ROLL = 0;                                       // カメラの傾き（2026-10-27 ユーザー要望で 0 に戻した）
+  const ORBIT_OFF = 7;                                  // 公転の中心を模型中心から x 方向に 7 ずらす → 模型が画面上で左右にゆっくり漂い、公転が大きく見える
   let orbit = 0;                                          // 観測者（カメラ）が模型の周りを回る角度。模型自体は回さない
   const timer = new THREE.Timer();
   const m4 = new THREE.Matrix4();
@@ -472,7 +474,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     const swingLeg = (c, ph, amp = 0.6) => { c.legL.rotation.x = Math.sin(ph) * amp; c.legR.rotation.x = -Math.sin(ph) * amp; };
     // キャッチボール: ボールは 2 人の間を放物線で往復。投げる側の腕が振られる
     const T = 2.2, ph = (time % (2 * T)) / T, u = ph < 1 ? ph : 2 - ph;
-    ball.position.set(-11 + 12 * u, GROUND_Y + 3.5 + Math.sin(u * Math.PI) * 4, 18);
+    ball.position.set(8 + 33 * u, GROUND_Y + 3.5 + Math.sin(u * Math.PI) * 7, 22);
     const cA = chars.catchA, cB = chars.catchB;
     cA.armR.rotation.x = ph < 1 ? -Math.PI * 0.8 * (1 - Math.min(1, ph * 4)) : -Math.PI * 0.8 * Math.min(1, (ph - 1) * 4);
     cB.armR.rotation.x = ph < 1 ? -Math.PI * 0.6 * Math.min(1, ph * 1.2) : -Math.PI * 0.6 * (1 - Math.min(1, (ph - 1) * 1.5));
@@ -490,8 +492,10 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     climber.armL.rotation.x = -Math.PI * 0.85 + Math.sin(time * 2.5) * 0.3; climber.armR.rotation.x = -Math.PI * 0.85 - Math.sin(time * 2.5) * 0.3;
     climber.legL.rotation.x = -0.7 + Math.sin(time * 2.5 + 1.5) * 0.4; climber.legR.rotation.x = -0.7 - Math.sin(time * 2.5 + 1.5) * 0.4;
     // マラソン: 環状の道（半径 15.5）を一周 20 秒で走る
-    const ra = time * (Math.PI * 2 / 20), rr = 15.5;
-    runner.g.position.set(Math.cos(ra) * rr, GROUND_Y + Math.abs(Math.sin(time * 9)) * 0.25, Math.sin(ra) * rr); runner.g.rotation.y = -ra;
+    const ra = time * (Math.PI * 2 / 34), RX = 40, RZ = 24, RCZ = 6;                     // 楕円コース: 左右は土台の外（|x| > 33）に出る
+    const rx = Math.cos(ra) * RX, rz = RCZ + Math.sin(ra) * RZ, onPlate = Math.abs(rx) <= N + 1 && Math.abs(rz) <= N + 1;
+    runner.g.position.set(rx, (onPlate ? GROUND_Y : PAGE_Y) + Math.abs(Math.sin(time * 9)) * 0.25, rz);
+    runner.g.rotation.y = Math.atan2(-Math.sin(ra) * RX, Math.cos(ra) * RZ);                 // 進行方向（接線）を向く
     swingLeg(runner, time * 9, 0.8); runner.armL.rotation.x = Math.sin(time * 9 + Math.PI) * 0.9 - 0.4; runner.armR.rotation.x = Math.sin(time * 9) * 0.9 - 0.4;
     // 腰が痛そうな人: 前かがみで腰に手を当て、ときどき伸ばそうとして戻る
     const bp = chars.backpain, strain = 0.5 + Math.max(0, Math.sin(time * 0.8)) * 0.25;
@@ -514,18 +518,19 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     const dHoriz = (f) => HALF_W / (tanV * camera.aspect * f) * 1.08;
     // 最上部（ヒーロー）: 右半分に収まる距離。タウンビュー: 画面を大きく使い、やや右寄せで少しはみ出す
     // エントランスビュー: 右寄りだが大きめで、左の文章領域に少しかかる。タウンビュー: 画面を大きく使い、やや右寄せ
-    const dHero = Math.max(dVert, dHoriz(wide ? 0.52 : 1)) * (wide ? 0.98 : 1);   // エントランス: 画面の右半分（幅 52%）に収める
-    const dTown = Math.max(dVert, dHoriz(wide ? 0.8 : 1)) * (wide ? 0.98 : 1.0);   // 画面に見切れない大きさ
+    const dHero = Math.max(dVert, dHoriz(wide ? 0.55 : 1)) * (wide ? 0.95 : 1);   // エントランス: 画面右側（幅 55%）に大きめに収める
+    const dTown = Math.max(dVert, dHoriz(wide ? 0.76 : 1)) * 1.0;   // 右寄せ（中心 61%）でも右端の人形まで見切れない大きさ
     const d = dHero + (dTown - dHero) * pe;
     const fw = camera.getFilmWidth();
-    camera.filmOffset = wide ? -fw * (0.255 * (1 - pe) + 0.12 * pe) : 0;   // エントランスでは中心を画面幅の約 75% に置く（右半分の中央）
-    const elev = 0.58 + 0.07 * (1 - pe);                              // 見下ろし角 約 30〜33°（tan）。上面と 2 側面が同時に見える
+    camera.filmOffset = wide ? -fw * (0.235 * (1 - pe) + 0.11 * pe) : 0;   // エントランスでは中心を画面幅の約 73.5% に、タウンビューでは 61% に置く
+    const elev = 0.404;                                               // 見下ろし角 22°（tan 22° = 0.404）
     camera.up.set(Math.sin(ROLL * (1 - pe)), Math.cos(ROLL * (1 - pe)), 0);
-    camera.position.set(Math.sin(orbit) * d, CENTER_Y + d * elev, Math.cos(orbit) * d); camera.lookAt(0, CENTER_Y, 0); camera.updateProjectionMatrix();   // 月が地球を回るように、カメラが周回
+    const ocx = ORBIT_OFF * (1 - pe);                                 // 公転中心（タウンビューでは模型中心に戻す）
+    camera.position.set(ocx + Math.sin(orbit) * d, CENTER_Y + d * elev, Math.cos(orbit) * d); camera.lookAt(ocx, CENTER_Y, 0); camera.updateProjectionMatrix();   // 月が地球を回るように、カメラが周回
     world.position.set(0, wide ? 0 : -20 * (1 - pe), 0);
     // 自転: ヒーローではやや速く、タウンビューではゆっくり。ドラッグ中は止め、離すと惰性のあと再開
     if (!dragging) {
-      const spin = prefersReduced ? 0 : (prog < 0.5 ? 0.22 : 0.08);
+      const spin = prefersReduced ? 0 : (prog < 0.5 ? 0.10 : 0.05);   // ゆっくり（約 60 秒 / 周）
       orbit -= dt * spin + dragVel; dragVel *= 0.92;
     }
     const town = prog > 0.55;

@@ -432,7 +432,8 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
 
   // 模型のおおよその大きさ（カメラ距離の計算用）
-  const HALF_W = 50, HALF_H = 38, CENTER_Y = 17;   // HALF_W は土台の対角線（公転でどの向きでも収まる大きさ）
+  const HALF_W = 47, HALF_H = 38, CENTER_Y = 17;   // HALF_W は土台の半対角線（33×√2 ≈ 46.7）。公転でどの向きでも収まる
+  const ROLL = 0.07;                                    // カメラをわずかに傾ける（rad）。模型が斜めに置かれた立体に見える
   let orbit = 0;                                          // 観測者（カメラ）が模型の周りを回る角度。模型自体は回さない
   const timer = new THREE.Timer();
   const m4 = new THREE.Matrix4();
@@ -505,12 +506,14 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     const dHoriz = (f) => HALF_W / (tanV * camera.aspect * f) * 1.08;
     // 最上部（ヒーロー）: 右半分に収まる距離。タウンビュー: 画面を大きく使い、やや右寄せで少しはみ出す
     // エントランスビュー: 右寄りだが大きめで、左の文章領域に少しかかる。タウンビュー: 画面を大きく使い、やや右寄せ
-    const dHero = Math.max(dVert, dHoriz(wide ? 0.5 : 1)) * (wide ? 0.98 : 1);   // エントランス: 画面の右半分に収める
+    const dHero = Math.max(dVert, dHoriz(wide ? 0.52 : 1)) * (wide ? 0.98 : 1);   // エントランス: 画面の右半分（幅 52%）に収める
     const dTown = Math.max(dVert, dHoriz(wide ? 0.8 : 1)) * (wide ? 0.98 : 1.0);   // 画面に見切れない大きさ
     const d = dHero + (dTown - dHero) * pe;
     const fw = camera.getFilmWidth();
     camera.filmOffset = wide ? -fw * (0.255 * (1 - pe) + 0.12 * pe) : 0;   // エントランスでは中心を画面幅の約 75% に置く（右半分の中央）
-    camera.position.set(Math.sin(orbit) * d, CENTER_Y + d * 0.24, Math.cos(orbit) * d); camera.lookAt(0, CENTER_Y, 0); camera.updateProjectionMatrix();   // 月が地球を回るように、カメラが周回
+    const elev = 0.24 + 0.09 * (1 - pe);                              // エントランスはやや見下ろし（立体感）、タウンビューは低め
+    camera.up.set(Math.sin(ROLL * (1 - pe)), Math.cos(ROLL * (1 - pe)), 0);
+    camera.position.set(Math.sin(orbit) * d, CENTER_Y + d * elev, Math.cos(orbit) * d); camera.lookAt(0, CENTER_Y, 0); camera.updateProjectionMatrix();   // 月が地球を回るように、カメラが周回
     world.position.set(0, wide ? 0 : -20 * (1 - pe), 0);
     // 自転: ヒーローではやや速く、タウンビューではゆっくり。ドラッグ中は止め、離すと惰性のあと再開
     if (!dragging) {
@@ -538,7 +541,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       const pos = HOTSPOTS[el.dataset.spot]; if (!pos) continue;
       if (pos[3]) v3.set(pos[0] * bigTree.scale.x, pos[1] * bigTree.scale.y, pos[2] * bigTree.scale.z); else v3.set(pos[0], pos[1], pos[2]);
       world.localToWorld(v3); v3.project(camera);
-      const visible = v3.z < 1;
+      const visible = v3.z < 1 && document.body.classList.contains('town-view');   // 目印はタウンビューだけに出す
       el.style.transform = `translate(${(v3.x * 0.5 + 0.5) * w}px, ${(-v3.y * 0.5 + 0.5) * h}px)`;
       el.style.opacity = visible ? '1' : '0'; el.style.pointerEvents = visible ? 'auto' : 'none';
       el._sx = (v3.x * 0.5 + 0.5) * w; el._sy = (-v3.y * 0.5 + 0.5) * h;

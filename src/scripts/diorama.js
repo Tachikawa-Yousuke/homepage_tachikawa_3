@@ -11,19 +11,19 @@ const THEMES = {
     person: [0xffffff, 0xff7a59, 0x2f6fd8, 0x5bc96a], skin: 0xf2c9a0, hair: 0x3a2a1a,
     device: 0x8a93a3, deviceLight: 0x5bc96a, letter: 0x1f2a44, sign: 0xffffff,
     bldg: [0xf6a5b5, 0x55bfe8, 0x3fc9b4, 0xfff1a8, 0xffffff], roof: [0x8c98a8, 0xe85c4a, 0x2f3a5c, 0xf2a53b], window: 0xffffff, tree: 0x3f9b3a, treeLight: 0x6fcf5a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xff7a59,
-    hemiSky: 0xffffff, hemiGround: 0xc8902a, sun: 0xfff2d0, sunI: 2.2, hemiI: 0.9, emissive: 0x000000 },
+    hemiSky: 0xffffff, hemiGround: 0xc8902a, sun: 0xfff2d0, sunI: 2.6, hemiI: 0.45, emissive: 0x000000 },
   navy: { bg: 0x1f2a44, base: 0xf6c945, grain: [0xffd964, 0xf2c23a, 0xffe17a, 0xe8b52e], road: 0xfff2c0,
     wire: 0xe8ecf3, wireEdge: 0xffffff, atom: 0xff7a59, electron: 0x8fd3ff,
     person: [0xffffff, 0xff7a59, 0x8fd3ff, 0x5bc96a], skin: 0xf2c9a0, hair: 0x3a2a1a,
     device: 0xb8c0cc, deviceLight: 0x5bc96a, letter: 0x1f2a44, sign: 0xffffff,
     bldg: [0xffffff, 0xf6a5b5, 0x55bfe8, 0x3fc9b4, 0xfff1a8], roof: [0x2f3a5c, 0xe85c4a, 0x5f6b7a, 0xf2a53b], window: 0xffe9a0, tree: 0x3f9b3a, treeLight: 0x6fcf5a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xff7a59,
-    hemiSky: 0xcfdcff, hemiGround: 0x2a3550, sun: 0xffffff, sunI: 2.0, hemiI: 0.8, emissive: 0x000000 },
+    hemiSky: 0xcfdcff, hemiGround: 0x2a3550, sun: 0xffffff, sunI: 2.4, hemiI: 0.45, emissive: 0x000000 },
   green: { bg: 0x1f5a3a, base: 0x2f7a52, grain: [0x4fa86e, 0x5cb87a, 0x44995f, 0x6ac688], road: 0xe9e0c4,
     wire: 0xe6ebe8, wireEdge: 0xffffff, atom: 0xffd84a, electron: 0xffffff,
     person: [0xffffff, 0xffd84a, 0xff7a59, 0x8fd3ff], skin: 0xf2c9a0, hair: 0x3a2a1a,
     device: 0x9aa5a0, deviceLight: 0xffd84a, letter: 0x0f2a20, sign: 0xffffff,
     bldg: [0xf6a5b5, 0x55bfe8, 0xfff1a8, 0xffffff, 0x3fc9b4], roof: [0x8c98a8, 0xe85c4a, 0x2f3a5c, 0xf2a53b], window: 0xffffff, tree: 0x2f7a3a, treeLight: 0x5bc96a, trunk: 0x8a5a2b, plane: 0xffffff, planeAccent: 0xffd84a,
-    hemiSky: 0xe8ffe8, hemiGround: 0x1f5a3a, sun: 0xfff6d8, sunI: 2.1, hemiI: 0.9, emissive: 0x000000 },
+    hemiSky: 0xe8ffe8, hemiGround: 0x1f5a3a, sun: 0xfff6d8, sunI: 2.5, hemiI: 0.45, emissive: 0x000000 },
   black: { bg: 0x0a0a0c, base: 0x161922, grain: [0x262b3a, 0x2d3345, 0x20242f, 0x343a4e], road: 0x3a3f4e,
     wire: 0xcfd4de, wireEdge: 0xffffff, atom: 0xffd84a, electron: 0x5ad6ff,
     person: [0xf4f4f4, 0xffd84a, 0x5ad6ff, 0xff7a59], skin: 0xf2c9a0, hair: 0x2a2a2a,
@@ -55,6 +55,11 @@ export const TREE_STYLES = {
   winter_c: { label: '冬C: 枝 20 本・小枝 3・細枝 3', bare: true, trunk: { r: 3.8, h: 22 }, branches: { n: 20, len: 22, y0: 12, y1: 27, sub: 3, twig: 3 }, canopy: [] },
 };
 // 季節ごとに使う様式（ユーザー選定: 春 = 丸い玉、夏 = 段々、秋 = 丸い傘、冬 = 冬B）
+// 2026-10-27: 立体感のため、全様式で幹を 6 高くし、傘の半径を 0.8 倍にする（建物と重なって奥行きが出る）
+for (const st of Object.values(TREE_STYLES)) {
+  st.trunk.h += 6; st.branches.y0 += 6; st.branches.y1 += 6;
+  if (Array.isArray(st.canopy)) for (const e of st.canopy) { e.rx *= 0.8; e.rz *= 0.8; e.cy += 6; if (e.cut !== undefined) e.cut += 6; }
+}
 export const SEASON_STYLE = { spring: 'round', summer: 'layered', autumn: 'umbrella', winter: 'winter_b' };
 export const TREE_STYLE_NAMES = Object.keys(TREE_STYLES);
 
@@ -223,7 +228,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   scene.add(camera);
 
   const hemi = new THREE.HemisphereLight(t.hemiSky, t.hemiGround, t.hemiI); scene.add(hemi);
-  const sun = new THREE.DirectionalLight(t.sun, t.sunI); sun.position.set(-60, 36, -8); sun.castShadow = true;   // 低い太陽（左やや奥）で影を右へ長く伸ばす（高さの約 1.7 倍）
+  const sun = new THREE.DirectionalLight(t.sun, t.sunI); sun.position.set(-50, 95, 60); sun.castShadow = true;   // 上やや手前・左の太陽: 上面が最も明るく、左側面が中間、右側面が暗い 3 トーン
   sun.shadow.mapSize.set(4096, 4096); Object.assign(sun.shadow.camera, { left: -120, right: 120, top: 140, bottom: -120, far: 400 }); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
   scene.add(sun);
   const rim = new THREE.DirectionalLight(0xffffff, 0.5); rim.position.set(-40, 30, -40); scene.add(rim);
@@ -365,6 +370,9 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       ...building(t, -28, 24, 7, 6, 6, 2, 2),      // 外周: ミント
       ...building(t, -10, -28, 10, 4, 7, 4, 0),    // 外周: 白い長い建物
       ...building(t, 22, 27, 6, 5, 5, 0, 1),       // 外周: ピンク（手前右）
+      ...building(t, 20, -27, 5, 14, 5, 1, 2),     // 高い建物（水色、奥）
+      ...building(t, -27, 6, 5, 12, 5, 0, 3),      // 高い建物（ピンク、左）
+      ...building(t, 27, 17, 4, 16, 4, 4, 2),      // 塔（白、右手前）
     ];
     // 電子顕微鏡（塔の右奥）
     for (let y = 0; y < 6; y++) for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) v.push({ x: 12 + dx, y: y + 0.5, z: -8 + dz, c: y === 5 ? t.deviceLight : t.device });
@@ -378,7 +386,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   });
   // 小さな木（季節で色が変わる）
   const smallTreesHolder = new THREE.Group(); world.add(smallTreesHolder);
-  const SMALL_TREES = [[-15, -21], [14, -22], [-24, -2], [24, 4], [12, 22], [2, 23], [-12, 23], [-20, -28], [-3, -24], [28, -10], [-29, 10], [16, 28], [-22, 28], [30, 18]];   // 建物と重ならない位置
+  const SMALL_TREES = [[-15, -21], [14, -22], [-24, -2], [24, 4], [12, 22], [2, 23], [-12, 23], [-20, -28], [-3, -24], [28, -10], [-29, 12], [16, 28], [-22, 28], [31, 23]];   // 建物と重ならない位置
   function buildSmallTrees() { smallTreesHolder.clear(); smallTreesHolder.add(makeVoxels(SMALL_TREES.flatMap(([x, z]) => tree(t, x, z, 1, season)), 1)); }
 
   // ---- 登場人物 6 人（統一デザイン）。動きは frame() で付ける ----
@@ -511,7 +519,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     const d = dHero + (dTown - dHero) * pe;
     const fw = camera.getFilmWidth();
     camera.filmOffset = wide ? -fw * (0.255 * (1 - pe) + 0.12 * pe) : 0;   // エントランスでは中心を画面幅の約 75% に置く（右半分の中央）
-    const elev = 0.24 + 0.09 * (1 - pe);                              // エントランスはやや見下ろし（立体感）、タウンビューは低め
+    const elev = 0.58 + 0.07 * (1 - pe);                              // 見下ろし角 約 30〜33°（tan）。上面と 2 側面が同時に見える
     camera.up.set(Math.sin(ROLL * (1 - pe)), Math.cos(ROLL * (1 - pe)), 0);
     camera.position.set(Math.sin(orbit) * d, CENTER_Y + d * elev, Math.cos(orbit) * d); camera.lookAt(0, CENTER_Y, 0); camera.updateProjectionMatrix();   // 月が地球を回るように、カメラが周回
     world.position.set(0, wide ? 0 : -20 * (1 - pe), 0);

@@ -233,23 +233,23 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   const addThemed = (fn) => { const holder = new THREE.Group(); world.add(holder); themed.push({ holder, fn }); };
 
   // ---- 台座（芝生の広場）＋ 環状の道。地面の色は季節で変わる ----
-  const N = 26;
+  const N = 32;                                           // 街の半径（ボクセル）。2026-10-27 に 26 → 32 へ拡大
   const groundVox = [];
   for (let gx = -N; gx < N; gx++) for (let gz = -N; gz < N; gz++) {
     const cx = gx + 0.5, cz = gz + 0.5, d = Math.hypot(cx, cz);
     const gi = Math.floor((Math.sin(gx * 0.9) + Math.cos(gz * 1.1) + Math.sin((gx + gz) * 0.5)) * 1.5 + 4) % 4;
     const road = Math.abs(d - 15.5) < 1.3 || (Math.abs(cx) < 1.3 && d > 15) || (Math.abs(cz) < 1.3 && d > 15);
-    for (let y = -2; y <= 0; y++) groundVox.push({ x: cx, y: y + 0.5, z: cz, top: y === 0, road, gi });
+    groundVox.push({ x: cx, y: 0.5, z: cz, top: true, road, gi });                    // 地面は 1 層だけ（薄い板。高さは groundHolder.scale.y で潰す）
   }
-  const groundHolder = new THREE.Group(); world.add(groundHolder);
+  const groundHolder = new THREE.Group(); groundHolder.scale.y = 0.3; world.add(groundHolder);   // 地面の厚み 0.3（上面は y = 0.3）
   function buildGround() {
     groundHolder.clear();
     groundHolder.add(makeVoxels(groundVox.map((v) => ({ ...v, c: v.top ? (v.road ? t.road : season.ground[v.gi]) : t.base })), 1));
   }
-  const edge = new THREE.Mesh(new THREE.BoxGeometry(N * 2 + 2, 1, N * 2 + 2), new THREE.MeshLambertMaterial({ color: t.base })); edge.position.y = -3; edge.receiveShadow = true; edge.castShadow = true; world.add(edge);
+  const edge = new THREE.Mesh(new THREE.BoxGeometry(N * 2 + 2, 0.25, N * 2 + 2), new THREE.MeshLambertMaterial({ color: t.base })); edge.position.y = -0.125; edge.receiveShadow = true; edge.castShadow = true; world.add(edge);   // 薄い縁
   // 模型全体の影を、背景色の床（見えない受け皿）に落とす。参考サイトの「紙の上に置いた模型」の見え方
   const shadowCatcher = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.ShadowMaterial({ opacity: 0.16 }));
-  shadowCatcher.rotation.x = -Math.PI / 2; shadowCatcher.position.y = -3.6; shadowCatcher.receiveShadow = true; scene.add(shadowCatcher);
+  shadowCatcher.rotation.x = -Math.PI / 2; shadowCatcher.position.y = -0.3; shadowCatcher.receiveShadow = true; scene.add(shadowCatcher);
 
   // ---- 大木。様式（TREE_STYLES）で幹・枝・樹冠の形が変わり、葉と雪は季節で作り直す ----
   let TREE_H = 40;                                     // 樹冠の最上部の高さ（目印の位置計算にも使う）
@@ -359,6 +359,12 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       ...building(t, 24, -6, 5, 5, 5, 3, 0),       // 黄色い建物
       ...building(t, -24, -4, 4, 6, 5, 1, 2),      // 水色の細い建物
       ...building(t, 7, 22, 6, 5, 5, 4, 1),        // 白い建物（手前）
+      ...building(t, -27, -25, 8, 5, 7, 0, 0),     // 外周: ピンク
+      ...building(t, 27, -22, 7, 8, 6, 1, 3),      // 外周: 水色の高い建物
+      ...building(t, 29, 8, 6, 4, 6, 3, 1),        // 外周: 黄色
+      ...building(t, -28, 24, 7, 6, 6, 2, 2),      // 外周: ミント
+      ...building(t, -10, -28, 10, 4, 7, 4, 0),    // 外周: 白い長い建物
+      ...building(t, 22, 27, 6, 5, 5, 0, 1),       // 外周: ピンク（手前右）
     ];
     // 電子顕微鏡（塔の右奥）
     for (let y = 0; y < 6; y++) for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) v.push({ x: 12 + dx, y: y + 0.5, z: -8 + dz, c: y === 5 ? t.deviceLight : t.device });
@@ -372,12 +378,12 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   });
   // 小さな木（季節で色が変わる）
   const smallTreesHolder = new THREE.Group(); world.add(smallTreesHolder);
-  const SMALL_TREES = [[-8, -21], [8, -22], [-24, -2], [24, 2], [12, 22], [2, 23], [-12, 23], [24, -5], [-3, -24]];
+  const SMALL_TREES = [[-15, -21], [14, -22], [-24, -2], [24, 4], [12, 22], [2, 23], [-12, 23], [-20, -28], [-3, -24], [28, -10], [-29, 10], [16, 28], [-22, 28], [30, 18]];   // 建物と重ならない位置
   function buildSmallTrees() { smallTreesHolder.clear(); smallTreesHolder.add(makeVoxels(SMALL_TREES.flatMap(([x, z]) => tree(t, x, z, 1, season)), 1)); }
 
   // ---- 登場人物 6 人（統一デザイン）。動きは frame() で付ける ----
   const chars = {};
-  const GROUND_Y = 1;                                     // 地面の上面の高さ
+  const GROUND_Y = 0.3;                                   // 地面の上面の高さ（groundHolder.scale.y と合わせる）
   const place = (key, x, z, ry, look) => { const c = makeChar(MEMBER_LOOKS[look] || {}); c.g.position.set(x, GROUND_Y, z); c.g.rotation.y = ry; world.add(c.g); chars[key] = c; return c; };
   place('catchA', -11, 18, Math.PI / 2, 'tachikawa');              // キャッチボール（投げる側）
   place('catchB', 1, 18, -Math.PI / 2, 'kudo');                    // キャッチボール（受ける側）
@@ -411,7 +417,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   // ---- 操作: ドラッグで回転 ----
   let dragging = false, lastX = 0, dragVel = 0;
   canvas.addEventListener('pointerdown', (e) => { dragging = true; lastX = e.clientX; dragVel = 0; canvas.setPointerCapture(e.pointerId); });
-  addEventListener('pointermove', (e) => { if (!dragging) return; const dx = e.clientX - lastX; lastX = e.clientX; dragVel = dx * 0.008; world.rotation.y += dragVel; });
+  addEventListener('pointermove', (e) => { if (!dragging) return; const dx = e.clientX - lastX; lastX = e.clientX; dragVel = dx * 0.008; orbit -= dragVel; });
   addEventListener('pointerup', () => { dragging = false; });
   addEventListener('pointercancel', () => { dragging = false; });
 
@@ -426,7 +432,8 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
 
   // 模型のおおよその大きさ（カメラ距離の計算用）
-  const HALF_W = 38, HALF_H = 34, CENTER_Y = 18;
+  const HALF_W = 44, HALF_H = 38, CENTER_Y = 17;
+  let orbit = 0;                                          // 観測者（カメラ）が模型の周りを回る角度。模型自体は回さない
   const timer = new THREE.Timer();
   const m4 = new THREE.Matrix4();
   let alive = true, lastTown = null;
@@ -499,16 +506,16 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     // 最上部（ヒーロー）: 右半分に収まる距離。タウンビュー: 画面を大きく使い、やや右寄せで少しはみ出す
     // エントランスビュー: 右寄りだが大きめで、左の文章領域に少しかかる。タウンビュー: 画面を大きく使い、やや右寄せ
     const dHero = Math.max(dVert, dHoriz(wide ? 0.64 : 1)) * (wide ? 0.95 : 1);
-    const dTown = Math.max(dVert, dHoriz(wide ? 0.8 : 1)) * (wide ? 0.86 : 0.95);
+    const dTown = Math.max(dVert, dHoriz(wide ? 0.8 : 1)) * (wide ? 0.98 : 1.0);   // 画面に見切れない大きさ
     const d = dHero + (dTown - dHero) * pe;
     const fw = camera.getFilmWidth();
     camera.filmOffset = wide ? -fw * (0.23 * (1 - pe) + 0.12 * pe) : 0;   // エントランスでは文章と重ならないよう右に寄せる
-    camera.position.set(0, CENTER_Y + d * 0.36, d); camera.lookAt(0, CENTER_Y, 0); camera.updateProjectionMatrix();
+    camera.position.set(Math.sin(orbit) * d, CENTER_Y + d * 0.24, Math.cos(orbit) * d); camera.lookAt(0, CENTER_Y, 0); camera.updateProjectionMatrix();   // 月が地球を回るように、カメラが周回
     world.position.set(0, wide ? 0 : -20 * (1 - pe), 0);
     // 自転: ヒーローではやや速く、タウンビューではゆっくり。ドラッグ中は止め、離すと惰性のあと再開
     if (!dragging) {
       const spin = prefersReduced ? 0 : (prog < 0.5 ? 0.22 : 0.08);
-      world.rotation.y += dt * spin + dragVel; dragVel *= 0.92;
+      orbit -= dt * spin + dragVel; dragVel *= 0.92;
     }
     const town = prog > 0.55;
     if (town !== lastTown) {

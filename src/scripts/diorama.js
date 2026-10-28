@@ -323,7 +323,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       }
     }
     TREE_H = maxY; CANOPY_RX = maxX; CANOPY_CUT = Math.round(minY);
-    HOTSPOTS.research[1] = TREE_H + 2;
+    HOTSPOTS.message[1] = TREE_H + 2;
     buildCanopy();
   }
   function buildCanopy() {
@@ -391,6 +391,22 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
 
   // ---- 登場人物 6 人（統一デザイン）。動きは frame() で付ける ----
   const chars = {};
+  let runnerWasOut = false;
+  // 足跡の演出: 画面左の文章の上を、下から上へ 16 歩分の足跡が順に現れ、各足跡は約 5 秒で消える
+  function spawnTrail(dir = 1) {                       // dir = 1: 土台から出て行く（下から上へ）、-1: 土台へ戻る（上から下へ）
+    const layer = document.getElementById('trail'); if (!layer || prefersReduced) return;
+    const n = 16, h = innerHeight, x0 = Math.min(innerWidth * 0.12, 180);
+    for (let i = 0; i < n; i++) setTimeout(() => {
+      if (!document.getElementById('trail')) return;
+      const p = document.createElement('i'); p.className = 'print';
+      const t = dir > 0 ? i / (n - 1) : 1 - i / (n - 1);                                    // 戻るときは上から順に
+      const x = x0 + Math.sin(t * Math.PI * 1.5) * innerWidth * 0.07 + (i % 2 ? 9 : -9);     // 緩い S 字に蛇行、左右の足を交互に
+      const y = h - 40 - t * (h - 90);
+      const ang = -Math.cos(t * Math.PI * 1.5) * 28 + (i % 2 ? 8 : -8) + (dir > 0 ? 0 : 180);   // 進行方向に足先を向ける
+      p.style.transform = `translate(${x}px, ${y}px) rotate(${ang}deg)`;
+      layer.appendChild(p); setTimeout(() => p.remove(), 5200);
+    }, i * 240);
+  }
   const GROUND_Y = 0.3;                                   // 地面の上面の高さ（groundHolder.scale.y と合わせる）
   const PAGE_Y = -0.3;                                    // 土台の外（背景の床）の高さ
   const place = (key, x, z, ry, look, y = GROUND_Y) => { const c = makeChar(MEMBER_LOOKS[look] || {}); c.g.position.set(x, y, z); c.g.rotation.y = ry; world.add(c.g); chars[key] = c; return c; };
@@ -414,7 +430,8 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
 
   // ---- クリックできる目印（模型のローカル座標）。4 つ目が true なら塔の伸びに追従 ----
   const HOTSPOTS = {
-    research: [0, 42, 0, true],           // 樹冠のてっぺん（高さは buildTreeShape が更新）
+    message: [0, 42, 0, true],            // 樹冠のてっぺん = メッセージ（高さは buildTreeShape が更新）
+    research: [-12, 24, -6, true],        // 枝の上（左奥）
     publications: [12, 24, 9, true],       // 枝の上
     about: [-17, 8, -16],                   // 研究棟の屋上
     members: [-5, 7, 18],                   // キャッチボールの間
@@ -441,6 +458,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
 
   // 模型のおおよその大きさ（カメラ距離の計算用）
+  const TOWN_FIRST = true;                              // 2026-10-28: 最初からタウンビュー（エントランスビューは使わない）
   const HALF_W = 49, HALF_H = 38, CENTER_Y = 17;   // HALF_W は土台の半対角線（≈ 46.7）＋外に立つ人形の分。公転でどの向きでも収まる
   const ROLL = 0;                                       // カメラの傾き（2026-10-27 ユーザー要望で 0 に戻した）
   const ORBIT_OFF = 7;                                  // 公転の中心を模型中心から x 方向に 7 ずらす → 模型が画面上で左右にゆっくり漂い、公転が大きく見える
@@ -496,6 +514,9 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     const rx = Math.cos(ra) * RX, rz = RCZ + Math.sin(ra) * RZ, onPlate = Math.abs(rx) <= N + 1 && Math.abs(rz) <= N + 1;
     runner.g.position.set(rx, (onPlate ? GROUND_Y : PAGE_Y) + Math.abs(Math.sin(time * 9)) * 0.25, rz);
     runner.g.rotation.y = Math.atan2(-Math.sin(ra) * RX, Math.cos(ra) * RZ);                 // 進行方向（接線）を向く
+    const runnerOut = rx < -(N + 1);                                                         // 左側で土台の外に出た瞬間（上へ）と戻った瞬間（下へ）に足跡
+    if (runnerOut !== runnerWasOut && time > 2) spawnTrail(runnerOut ? 1 : -1);
+    runnerWasOut = runnerOut;
     swingLeg(runner, time * 9, 0.8); runner.armL.rotation.x = Math.sin(time * 9 + Math.PI) * 0.9 - 0.4; runner.armR.rotation.x = Math.sin(time * 9) * 0.9 - 0.4;
     // 腰が痛そうな人: 前かがみで腰に手を当て、ときどき伸ばそうとして戻る
     const bp = chars.backpain, strain = 0.5 + Math.max(0, Math.sin(time * 0.8)) * 0.25;
@@ -511,18 +532,18 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     // タウンビューの節（#town）が画面下端に現れてから上端近くに達するまでを 0 → 1 にする（ヒーローの長さに依存しない）
     const townEl = document.getElementById('town');
     const townTop = townEl ? townEl.getBoundingClientRect().top : innerHeight - scrollY;
-    const prog = Math.max(0, Math.min(1, (innerHeight * 0.75 - townTop) / (innerHeight * 0.7)));   // 節の上端が画面の 75% の高さに来たら始め、5% で完了
+    const prog = TOWN_FIRST ? 1 : Math.max(0, Math.min(1, (innerHeight * 0.75 - townTop) / (innerHeight * 0.7)));   // 節の上端が画面の 75% の高さに来たら始め、5% で完了
     const pe = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
     const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
     const dVert = HALF_H / tanV * 1.08;
     const dHoriz = (f) => HALF_W / (tanV * camera.aspect * f) * 1.08;
     // 最上部（ヒーロー）: 右半分に収まる距離。タウンビュー: 画面を大きく使い、やや右寄せで少しはみ出す
     // エントランスビュー: 右寄りだが大きめで、左の文章領域に少しかかる。タウンビュー: 画面を大きく使い、やや右寄せ
-    const dHero = Math.max(dVert, dHoriz(wide ? 0.55 : 1)) * (wide ? 0.95 : 1);   // エントランス: 画面右側（幅 55%）に大きめに収める
+    const dHero = Math.max(dVert, dHoriz(wide ? 0.60 : 1)) * (wide ? 0.95 : 1);   // エントランス: 画面右側（幅 60%）に大きく
     const dTown = Math.max(dVert, dHoriz(wide ? 0.76 : 1)) * 1.0;   // 右寄せ（中心 61%）でも右端の人形まで見切れない大きさ
     const d = dHero + (dTown - dHero) * pe;
     const fw = camera.getFilmWidth();
-    camera.filmOffset = wide ? -fw * (0.235 * (1 - pe) + 0.11 * pe) : 0;   // エントランスでは中心を画面幅の約 73.5% に、タウンビューでは 61% に置く
+    camera.filmOffset = wide ? -fw * (0.23 * (1 - pe) + 0.11 * pe) : 0;   // エントランスでは中心を画面幅の約 73% に、タウンビューでは 61% に置く
     const elev = 0.404;                                               // 見下ろし角 22°（tan 22° = 0.404）
     camera.up.set(Math.sin(ROLL * (1 - pe)), Math.cos(ROLL * (1 - pe)), 0);
     const ocx = ORBIT_OFF * (1 - pe);                                 // 公転中心（タウンビューでは模型中心に戻す）
@@ -530,7 +551,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     world.position.set(0, wide ? 0 : -20 * (1 - pe), 0);
     // 自転: ヒーローではやや速く、タウンビューではゆっくり。ドラッグ中は止め、離すと惰性のあと再開
     if (!dragging) {
-      const spin = prefersReduced ? 0 : (prog < 0.5 ? 0.10 : 0.05);   // ゆっくり（約 60 秒 / 周）
+      const spin = prefersReduced ? 0 : (prog < 0.5 ? 0.10 : 0.07);   // ゆっくり（約 90 秒 / 周）
       orbit -= dt * spin + dragVel; dragVel *= 0.92;
     }
     const town = prog > 0.55;
@@ -605,5 +626,5 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   applyTheme(themeName); applySeason(seasonName);
   frame();
   function dispose() { alive = false; renderer.dispose(); }
-  return { applyTheme, applySeason, applyTreeStyle, capture, renderPortrait, dispose, renderer, camera, world, HOTSPOTS, TREE_STYLES, SEASON_STYLE };
+  return { applyTheme, applySeason, applyTreeStyle, capture, renderPortrait, spawnTrail, dispose, renderer, camera, world, HOTSPOTS, TREE_STYLES, SEASON_STYLE };
 }

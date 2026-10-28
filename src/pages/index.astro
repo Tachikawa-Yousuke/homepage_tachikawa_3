@@ -20,6 +20,7 @@ const nav = [
 const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('九州大学 伊都キャンパス ウエスト4号館');
 // 模型上の目印（位置は diorama.js の HOTSPOTS と対応）
 const spots = [
+  { key: 'message', en: 'Message', label: 'メッセージ', href: '#message', desc: '研究室からのメッセージ。「誰もが簡単に、小さなモノづくりを。」目指していること、取り組み、問い合わせ先。' },
   { key: 'about', en: 'About', label: '研究室概要', href: withBase('/about'), desc: site.foundedText + '。固体中の原子拡散を駆使した、原子・ナノスケールのモノづくりに挑む研究室です。' },
   { key: 'research', en: 'Research', label: '研究テーマ', href: withBase('/research'), desc: research.length + ' つのテーマ。ナノワイヤ創製、Nano Additive Manufacturing、電子と欠陥、結晶組織デザイン。' },
   { key: 'members', en: 'Members', label: 'メンバー', href: withBase('/members'), desc: '教員・学生 ' + members.filter((m) => m.data.group !== 'alumni').length + ' 名の小さな研究室。メンバーを募集しています。' },
@@ -54,37 +55,37 @@ const themes = [
     <canvas id="diorama" data-base={import.meta.env.BASE_URL} aria-label="大きな一本の木を中心にした町の 3D 模型"></canvas>
     <noscript><div class="nojs"><p>3D 模型の表示には JavaScript が必要です。</p></div></noscript>
     <svg class="leader" id="leader" aria-hidden="true"><path d="" /></svg>
+    <div id="trail" aria-hidden="true"></div>   <!-- ランニング人形が土台の外へ出ると、ここに足跡が下から上へ付いて消える -->
     <div id="markers" aria-label="模型上のリンク">
       {spots.map((sp) => <a class="marker" data-spot={sp.key} href={sp.href}><i></i><span>{sp.label}</span></a>)}
     </div>
 
-    <SiteChrome />
-
-    <div class="content">
-      <!-- エントランスビュー: 左に文章、右に模型（少し文章にかかる大きさ） -->
-      <section class="hero wrap" id="entrance">
-        <!-- 最初の画面: 名称・キャッチコピー・問い合わせボックス・模型だけ -->
-        <div class="hero-first">
-          <div class="hero-top">
-            <p class="org-top">九州大学大学院 工学研究院 機械工学部門</p>
-            <p class="lab-name">材料創製力学研究室｜木村研究室</p>
-            <p class="label">Mechanics for Material Design (M2D) Lab | KIMURA Laboratory</p>
-            <p class="org">Department of Mechanical Engineering, Kyushu University</p>
-          </div>
-          <h1 class="hero-catch">誰もが簡単に、<br />小さなモノづくりを。</h1>
-          <a class="hero-cta" href={site.contactFormUrl} target="_blank" rel="noopener"><span class="cta-main">お問い合わせフォーム ▶</span><span class="cta-sub">研究室見学・Web 面談は随時受付中</span></a>
-        </div>
-        <!-- 研究室紹介（各段落の先頭にキャッチフレーズ） -->
+    <!-- メッセージ板: 大木の目印「メッセージ」をクリックで左から出る。中身はキャッチコピー → 紹介文 → 問い合わせ -->
+    <div id="msg-shade" class="msg-shade" aria-hidden="true"></div>
+    <aside id="message" class="msg-panel" aria-label="メッセージ" aria-hidden="true">
+      <button class="msg-close" type="button" aria-label="閉じる">×</button>
+      <span class="en">Message</span>
+      <h1 class="hero-catch">誰もが簡単に、<br />小さなモノづくりを。</h1>
         <div class="hero-intro">
           <p><b>見えないほど小さな世界に、<br />誰もが使えるモノづくりを。</b>当研究室は、工学イノベーションを切り拓くことをミッションに2024年9月に発足した研究室です。新たなGame changerとして原子・ナノ・マイクロといった目に見えない極小スケールにおいて、誰もが簡単に使えるモノづくり技術の創出を目指しています。</p>
-          <p><b>小さな材料の壁を越える。</b>目に見えないほど小さな材料は、これまでの常識から外れた新しい材料機能を示しますが、創製難易度が高く、普及に至っていません。突破するために、固相中の物質輸送現象である<b>原子拡散</b>を駆使した新しい「原子・ナノスケールのモノづくり」を提案しています。</p>
+          <p><b>小さな材料の壁を越える。</b>目に見えないほど小さな材料は、これまでの常識から外れた新しい材料機能を示しますが、創製難易度が高く、普及に至っていません。突破するために、固相中の物質輸送現象である原子拡散を駆使した新しい「原子・ナノスケールのモノづくり」を提案しています。</p>
           <p><b>見て、測って、操る。</b>その他、その場電子顕微鏡観察や数値計算技術を採り入れた電子と原子の相互作用の探究、結晶組織操作による金属・セラミックスの力学特性向上手法を開発したりしています。</p>
           <p><b>力学を土台に、新しい科学へ。</b>本研究室は力学を基盤とした実験研究を中心に据えています。基礎物理を理解しながら新しい科学の発展を目指しています。材料が好き、ナノ（小さいもの）に興味を持っている、原子を見たい、新しい技術や知識に触れてみたい、とにかく突き詰めて考えることが好き、など一つでも当てはまって興味がある人はぜひ<a href={site.contactFormUrl} target="_blank" rel="noopener">問い合わせフォーム</a>から気軽にお問い合わせください（メールでもOKです）。研究室見学やWeb面談は随時受け付けています。</p>
         </div>
-      </section>
+      <a class="hero-cta" href={site.contactFormUrl} target="_blank" rel="noopener"><span class="cta-main">お問い合わせフォーム ▶</span><span class="cta-sub">研究室見学・Web 面談は随時受付中</span></a>
+    </aside>
 
+    <SiteChrome />
+
+    <div class="content">
       <!-- タウンビュー: 模型が中央寄り（やや右）に来て、ゆっくり自転。左に M2D TOWN -->
       <section class="model-stage" id="town" aria-label="タウンビュー">
+        <div class="town-name">
+          <p class="org-top">九州大学大学院 工学研究院 機械工学部門</p>
+          <p class="lab-name">材料創製力学研究室｜木村研究室</p>
+          <p class="label">Mechanics for Material Design (M2D) Lab | KIMURA Laboratory</p>
+          <p class="org">Department of Mechanical Engineering, Kyushu University</p>
+        </div>
         <div class="town-title" aria-hidden="true"><span class="en">Town view</span>M2D<br />TOWN</div>
         <div class="spot-panel" aria-live="polite">
           {spots.map((sp) => <div class="spot-info" data-for={sp.key}><span class="en">{sp.en}</span><h3>{sp.label}</h3><p>{sp.desc}</p></div>)}
@@ -122,6 +123,19 @@ const themes = [
         if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.marker') === m) return;
         m.classList.remove('hover');
       });
+      // メッセージ板の開閉（目印「メッセージ」・× ボタン・暗幕・Esc・URL の #message）
+      const msgOpen = (on) => { document.body.classList.toggle('msg-open', on); const m = document.getElementById('message'); if (m) m.setAttribute('aria-hidden', String(!on)); try { history.replaceState(null, '', on ? '#message' : location.pathname + location.search); } catch (e) {} };
+      if (!document.documentElement.dataset.msgBound) {
+        document.documentElement.dataset.msgBound = '1';
+        document.addEventListener('click', (e) => {
+          const t = e.target instanceof Element ? e.target : null; if (!t) return;
+          if (t.closest('.marker[data-spot="message"]')) { e.preventDefault(); msgOpen(true); return; }
+          if (t.closest('.msg-close, #msg-shade')) msgOpen(false);
+        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('msg-open')) msgOpen(false); });
+        document.addEventListener('astro:page-load', () => { if (location.hash === '#message') msgOpen(true); });
+      }
+      if (location.hash === '#message') msgOpen(true);
       document.addEventListener('astro:before-swap', () => { if (d) { d.dispose(); d = null; } });
       document.addEventListener('astro:page-load', init);
       init();

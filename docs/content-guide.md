@@ -11,7 +11,7 @@
 | 業績（論文・発表・受賞）の追加 | `src/content/publications.yaml` | 1 件 = 1 ブロック。年と通し番号で自動整列 |
 | 研究テーマの文章 | `src/content/research/*.md` | 1 テーマ = 1 ファイル（Markdown） |
 | 装置・設備の追加・写真 | `src/content/equipment.yaml` | 写真は `public/images/equipment/` に置く |
-| お知らせ | `src/content/news/YYYY-MM-DD-題名.md` | トップの「メッセージ」の板の下に新しい順で最大 5 件表示（題名と日付のみ） |
+| お知らせ | `src/content/news/YYYY-MM-DD-題名.md` | トップの見出し「M2D TOWN」の下に新しい順で 5 件、全件は「お知らせ」の項目（/news）。本文を書くと一覧で題名の下に出る |
 | 研究室名・住所・問い合わせフォームの URL | `src/data/site.json` | 全ページに反映 |
 | 研究室概要・アクセスの本文 | `src/pages/about.astro`, `src/pages/access.astro` | 文章だけなら HTML を直接書き換える |
 | メッセージ（トップの板の本文） | `src/pages/index.astro` の `<aside id="message">` の中 | 太字の見出しと段落 |

@@ -9,6 +9,7 @@ export const PLACES: Place[] = [
   // 2026-10-29: 町の場所名（広場・研究棟など）はユーザー要望で廃止し、通常のページ名に戻した。place/placeEn は label/en と同じ値を保持
   { path: '/',             place: 'ホーム',     placeEn: 'Home',         label: 'ホーム',     en: 'Home' },
   { path: '/#message',     place: 'メッセージ',  placeEn: 'Message',      label: 'メッセージ',  en: 'Message' },
+  { path: '/news',         place: 'お知らせ',    placeEn: 'News',         label: 'お知らせ',    en: 'News' },
   { path: '/about',        place: '研究室概要',  placeEn: 'About',        label: '研究室概要',  en: 'About' },
   { path: '/research',     place: '研究テーマ',  placeEn: 'Research',     label: '研究テーマ',  en: 'Research' },
   { path: '/members',      place: 'メンバー',    placeEn: 'Members',      label: 'メンバー',    en: 'Members' },

@@ -1,0 +1,23 @@
+---
+// お知らせ一覧（全件）。日付が変わるごとに行の濃淡を切り替えて、区切りが分かるようにする
+import Base from '../layouts/Base.astro';
+import { getCollection, render } from 'astro:content';
+import { fmtDate, isoDate } from '../lib/date';
+const entries = (await getCollection('news')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const rows = await Promise.all(entries.map(async (e) => ({ e, Content: (await render(e)).Content, hasBody: !!(e.body && e.body.trim()) })));
+let shade = 0, prev = '';
+const items = rows.map((r) => { const key = isoDate(r.e.data.date); if (prev && key !== prev) shade ^= 1; prev = key; return { ...r, shade }; });
+---
+<Base title="お知らせ" en="News">
+  <ul class="news-list">
+    {items.map(({ e, Content, hasBody, shade }) => (
+      <li class={'news-row' + (shade ? ' alt' : '')}>
+        <time datetime={isoDate(e.data.date)}>{fmtDate(e.data.date)}</time>
+        <div class="news-body">
+          <h3>{e.data.title}</h3>
+          {hasBody && <div class="news-text"><Content /></div>}
+        </div>
+      </li>
+    ))}
+  </ul>
+</Base>

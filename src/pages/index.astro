@@ -4,11 +4,12 @@ import site from '../data/site.json';
 import { getCollection } from 'astro:content';
 import { withBase } from '../lib/url';
 import { PLACES } from '../lib/town';
+import { fmtDate, isoDate } from '../lib/date';
 import { ClientRouter } from 'astro:transitions';
 import SiteChrome from '../components/SiteChrome.astro';
 
 const research = (await getCollection('research')).sort((a, b) => a.data.order - b.data.order);
-const news = (await getCollection('news')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 5);   // メッセージ板の下に最新 5 件
+const news = (await getCollection('news')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 5);   // タウンビューの見出しの下に最新 5 件
 const publications = await getCollection('publications');
 const equipment = await getCollection('equipment');
 const members = await getCollection('members');
@@ -22,6 +23,7 @@ const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURICom
 // 模型上の目印（位置は diorama.js の HOTSPOTS と対応）
 const spots = [
   { key: 'message', en: 'Message', label: 'メッセージ', href: '#message', desc: '研究室からのメッセージ。「誰もが簡単に、小さなモノづくりを。」目指していること、取り組み、問い合わせ先。' },
+  { key: 'news', en: 'News', label: 'お知らせ', href: withBase('/news'), desc: '研究室からのお知らせ。見学会、学会発表、取材、新メンバーなど。全件はこちら。' },
   { key: 'about', en: 'About', label: '研究室概要', href: withBase('/about'), desc: site.foundedText + '。固体中の原子拡散を駆使した、原子・ナノスケールのモノづくりに挑む研究室です。' },
   { key: 'research', en: 'Research', label: '研究テーマ', href: withBase('/research'), desc: research.length + ' つのテーマ。ナノワイヤ創製、Nano Additive Manufacturing、電子と欠陥、結晶組織デザイン。' },
   { key: 'members', en: 'Members', label: 'メンバー', href: withBase('/members'), desc: '教員・学生 ' + members.filter((m) => m.data.group !== 'alumni').length + ' 名の小さな研究室。メンバーを募集しています。' },
@@ -30,7 +32,7 @@ const spots = [
   { key: 'access', en: 'Access', label: 'アクセス', href: withBase('/access'), desc: '伊都キャンパス ウエスト4号館 428・414・401 室。問い合わせはフォームから。' },
 ];
 // 板で開く目印（文章ページの中身を読み込む）。業績は長いのでページへ移動する
-const PANEL_SPOTS = ['about', 'research', 'members', 'equipment', 'access'];   // 板で開く目印（業績だけは長いのでページへ移動）
+const PANEL_SPOTS = ['news', 'about', 'research', 'members', 'equipment', 'access'];   // 板で開く目印（業績だけは長いのでページへ移動）
 for (const sp of spots) { sp.place = PLACES.find((p) => p.en === sp.en)?.place || ''; sp.panel = PANEL_SPOTS.includes(sp.key); }
 const themes = [
   { key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, { key: 'green', label: '緑' }, { key: 'black', label: '黒' },
@@ -79,15 +81,6 @@ const themes = [
           <p><b>力学を土台に、新しい科学へ。</b>本研究室は力学を基盤とした実験研究を中心に据えています。基礎物理を理解しながら新しい科学の発展を目指しています。材料が好き、ナノ（小さいもの）に興味を持っている、原子を見たい、新しい技術や知識に触れてみたい、とにかく突き詰めて考えることが好き、など一つでも当てはまって興味がある人はぜひ<a href={site.contactFormUrl} target="_blank" rel="noopener">問い合わせフォーム</a>から気軽にお問い合わせください（メールでもOKです）。研究室見学やWeb面談は随時受け付けています。</p>
         </div>
       <a class="hero-cta" href={site.contactFormUrl} target="_blank" rel="noopener"><span class="cta-main">お問い合わせフォーム ▶</span><span class="cta-sub">研究室見学・Web 面談は随時受付中</span></a>
-      <!-- お知らせ: src/content/news/*.md の新しい順（最大 5 件）。問い合わせボックスの下 -->
-      {news.length > 0 && (
-        <section class="msg-news" aria-label="お知らせ">
-          <span class="en">News · お知らせ</span>
-          <ul>
-            {news.map((n) => <li><time datetime={n.data.date.toISOString().slice(0, 10)}>{n.data.date.toISOString().slice(0, 10).replace(/-/g, '.')}</time><span>{n.data.title}</span></li>)}
-          </ul>
-        </section>
-      )}
     </aside>
     <!-- 場所の板: 研究棟・大木の枝・装置棟・立て看板・郵便受けの目印をクリックで、その文章ページの中身をここに読み込んで出す -->
     <aside id="place" class="msg-panel place-panel" aria-label="場所の案内" aria-hidden="true">
@@ -109,6 +102,15 @@ const themes = [
           <p class="org">Department of Mechanical Engineering, Kyushu University</p>
         </div>
         <div class="town-title" aria-hidden="true"><span class="en">Town view</span>M2D<br />TOWN</div>
+        <!-- お知らせ（直近 5 件）: 見出しの下に常に表示。見出しをクリックすると全件の板が開く -->
+        {news.length > 0 && (
+          <nav class="town-news" aria-label="お知らせ（直近）">
+            <a class="town-news-head" href={withBase('/news')} data-spot-link="news"><span class="en">News</span>お知らせ<small>すべて見る ▶</small></a>
+            <ul>
+              {news.map((n) => <li><time datetime={isoDate(n.data.date)}>{fmtDate(n.data.date)}</time><span>{n.data.title}</span></li>)}
+            </ul>
+          </nav>
+        )}
         <!-- 町の天気（季節・空の色）。ボタンの処理は SiteChrome の共通スクリプト（.season-btn / .theme-dot） -->
         <div class="weather" role="group" aria-label="町の天気">
           <span class="en">Weather · 町の天気</span>
@@ -163,7 +165,7 @@ const themes = [
         m.classList.remove('hover');
       });
       // ---- 板の開閉: メッセージ（#message）と場所の板（#about などは文章ページの中身を読み込んで表示）。開くとカメラがその目印に寄る ----
-      const PANEL_SPOTS = ['about', 'research', 'members', 'equipment', 'access'];
+      const PANEL_SPOTS = ['news', 'about', 'research', 'members', 'equipment', 'access'];
       const placeCache = {};
       let openKey = null;
       const setHash = (h) => { try { history.replaceState(null, '', h ? '#' + h : location.pathname + location.search); } catch (e) {} };
@@ -200,6 +202,7 @@ const themes = [
         document.addEventListener('click', (e) => {
           const t = e.target instanceof Element ? e.target : null; if (!t) return;
           const m = t.closest('.marker'); if (m && (m.dataset.spot === 'message' || m.dataset.panel)) { e.preventDefault(); e.stopPropagation(); openSpot(m.dataset.spot); return; }
+          const sl = t.closest('[data-spot-link]'); if (sl) { e.preventDefault(); e.stopPropagation(); openSpot(sl.dataset.spotLink); return; }   // 見出しの下の「お知らせ」など
           if (t.closest('a[href$="#message"]')) { e.preventDefault(); e.stopPropagation(); openSpot('message'); document.body.classList.remove('nav-open'); document.getElementById('drawer')?.setAttribute('aria-hidden', 'true'); return; }   // メニューの「大木のてっぺん」（メニューは閉じる）
           if (t.closest('.msg-close, #msg-shade')) openSpot(null);
           const card = t.closest('#place .flip.can-flip'); if (card) card.classList.toggle('flipped');   // 板の中の名刺は押しても裏返る

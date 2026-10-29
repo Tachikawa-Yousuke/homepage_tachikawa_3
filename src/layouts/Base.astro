@@ -4,9 +4,11 @@ import { ClientRouter } from 'astro:transitions';
 import SiteChrome from '../components/SiteChrome.astro';
 import site from '../data/site.json';
 import { withBase } from '../lib/url';
+import { placeFor } from '../lib/town';
 
 interface Props { title: string; description?: string; en?: string; }
 const { title, description = site.description, en = '' } = Astro.props;
+const here = placeFor(Astro.url.pathname, import.meta.env.BASE_URL);   // この文章ページが町のどこに当たるか
 const pageTitle = title + '｜' + site.labName + '（' + site.labNameAlt + '）';
 ---
 <!doctype html>
@@ -31,6 +33,7 @@ const pageTitle = title + '｜' + site.labName + '（' + site.labNameAlt + '）'
     <div class="flip">
       <main class="page wrap">
         <header class="page-head">
+          {here && <p class="crumb"><a href={withBase('/')}>M2D TOWN</a><span aria-hidden="true">▸</span>{here.place}</p>}
           {en && <p class="label">{en}</p>}
           <h1>{title}</h1>
         </header>

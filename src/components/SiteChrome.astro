@@ -1,17 +1,9 @@
 ---
-// 全ページ共通: 左上のハンバーガー、左から出るナビのモーダル（配色の切替もここ）、本体にかかる影
+// 全ページ共通: 左上のハンバーガー、左から出る「町の案内図」（ナビ。季節・配色の切替=町の天気もここ）、本体にかかる影
 import site from '../data/site.json';
 import { withBase } from '../lib/url';
-const nav = [
-  { href: withBase('/'), label: 'ホーム', en: 'Home' },
-  { href: withBase('/about'), label: '研究室概要', en: 'About' },
-  { href: withBase('/research'), label: '研究テーマ', en: 'Research' },
-  { href: withBase('/members'), label: 'メンバー', en: 'Members' },
-  { href: withBase('/publications'), label: '業績', en: 'Publications' },
-  { href: withBase('/equipment'), label: '装置・設備', en: 'Apparatus' },
-  { href: withBase('/join'), label: '進学・配属', en: 'Join us' },
-  { href: withBase('/access'), label: 'アクセス', en: 'Access' },
-];
+import { PLACES } from '../lib/town';
+const nav = PLACES.map((p) => ({ ...p, href: withBase(p.path) }));   // 町の場所名で並べる（src/lib/town.ts）
 const themes = [{ key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, { key: 'green', label: '緑' }, { key: 'black', label: '黒' }];
 const seasons = [{ key: 'spring', label: '春' }, { key: 'summer', label: '夏' }, { key: 'autumn', label: '秋' }, { key: 'winter', label: '冬' }];
 ---
@@ -21,22 +13,25 @@ const seasons = [{ key: 'spring', label: '春' }, { key: 'summer', label: '夏' 
 <div class="shade" id="shade"></div>
 <nav class="drawer" id="drawer" aria-label="メインナビゲーション" aria-hidden="true">
   <div class="drawer-head">
-    <span class="brand"><b></b>M2D Lab</span>
+    <span class="brand"><b></b>M2D TOWN<small>案内図</small></span>
     <button class="drawer-close" id="drawer-close" type="button" aria-label="メニューを閉じる">×</button>
   </div>
   <ul>
-    {nav.map((n) => <li><a href={n.href}><span class="en">{n.en}</span>{n.label}</a></li>)}
+    {nav.map((n) => <li><a href={n.href}><span class="en">{n.placeEn} · {n.en}</span><span class="row">{n.place}<small>{n.label}</small></span></a></li>)}
   </ul>
-  <div class="drawer-themes">
-    <span class="en">季節</span>
-    <div class="season-picker" role="group" aria-label="季節">
-      {seasons.map((sn) => <button type="button" class="season-btn" data-season-key={sn.key}>{sn.label}</button>)}
+  <div class="drawer-weather">
+    <span class="en">Weather · 町の天気</span>
+    <div class="weather-row">
+      <span class="w-label">季節</span>
+      <div class="season-picker" role="group" aria-label="季節">
+        {seasons.map((sn) => <button type="button" class="season-btn" data-season-key={sn.key}>{sn.label}</button>)}
+      </div>
     </div>
-  </div>
-  <div class="drawer-themes">
-    <span class="en">配色</span>
-    <div class="theme-picker" role="group" aria-label="配色">
-      {themes.map((t) => <button type="button" class="theme-dot" data-theme-key={t.key} title={'配色: ' + t.label} aria-label={'配色: ' + t.label}></button>)}
+    <div class="weather-row">
+      <span class="w-label">空の色</span>
+      <div class="theme-picker" role="group" aria-label="配色">
+        {themes.map((t) => <button type="button" class="theme-dot" data-theme-key={t.key} title={'配色: ' + t.label} aria-label={'配色: ' + t.label}></button>)}
+      </div>
     </div>
   </div>
   <p class="drawer-foot">{site.labName}｜{site.labNameAlt}<br /><span class="en">{site.universityEn}</span></p>

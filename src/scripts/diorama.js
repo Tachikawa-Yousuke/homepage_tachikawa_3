@@ -354,22 +354,22 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   // ---- 街: 建物・木・人・装置・看板・郵便受け・文字 ----
   addThemed((t) => {
     const v = [
-      ...building(t, -17, -16, 14, 7, 9, 0, 0),    // 研究棟（ウエスト4号館のイメージ）
-      ...building(t, 18, -16, 11, 5, 8, 2, 2),     // 講義棟
+      ...building(t, -17, -20, 14, 7, 9, 0, 0),    // 研究棟（ウエスト4号館のイメージ。ランニングコースの奥）
+      ...building(t, 18, -19, 11, 5, 8, 2, 2),     // 講義棟（コースの奥）
       ...building(t, 20, 15, 8, 4, 7, 1, 1),       // 食堂（赤い屋根）
       ...building(t, -21, 8, 6, 3, 6, 1, 1),       // 売店
       ...building(t, -21, 17, 6, 4, 6, 0, 2),      // 小さな建物
       ...building(t, -6, -21, 6, 9, 6, 0, 3),      // 高い建物（ピンク）
       ...building(t, 6, -21, 6, 6, 5, 2, 1),       // 中くらいの建物（ミント）
-      ...building(t, 24, -6, 5, 5, 5, 3, 0),       // 黄色い建物
+      ...building(t, 25, -3, 5, 5, 5, 3, 0),       // 黄色い建物（コースの内側）
       ...building(t, -24, -4, 4, 6, 5, 1, 2),      // 水色の細い建物
-      ...building(t, 7, 22, 6, 5, 5, 4, 1),        // 白い建物（手前）
-      ...building(t, -27, -25, 8, 5, 7, 0, 0),     // 外周: ピンク
+      ...building(t, -6, 14, 6, 5, 5, 4, 1),       // 白い建物（大木の手前左。キャッチボールの通り道を空ける）
+      ...building(t, -28, -26, 8, 5, 7, 0, 0),     // 外周: ピンク（左奥の角）
       ...building(t, 27, -22, 7, 8, 6, 1, 3),      // 外周: 水色の高い建物
       ...building(t, 29, 8, 6, 4, 6, 3, 1),        // 外周: 黄色
       ...building(t, -30, -14, 7, 6, 6, 2, 2),     // 外周: ミント（ランニングコースを避けて左奥へ）
       ...building(t, -10, -28, 10, 4, 7, 4, 0),    // 外周: 白い長い建物
-      ...building(t, 22, 27, 6, 5, 5, 0, 1),       // 外周: ピンク（手前右）
+      ...building(t, 29.5, 29.5, 5, 5, 5, 0, 1),       // 外周: ピンク（手前右の角。コースの外側）
       ...building(t, 20, -27, 5, 14, 5, 1, 2),     // 高い建物（水色、奥）
       ...building(t, -27, 6, 5, 12, 5, 0, 3),      // 高い建物（ピンク、左）
       ...building(t, 27, 17, 4, 16, 4, 4, 2),      // 塔（白、右手前）
@@ -386,7 +386,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   });
   // 小さな木（季節で色が変わる）
   const smallTreesHolder = new THREE.Group(); world.add(smallTreesHolder);
-  const SMALL_TREES = [[-15, -21], [14, -22], [-24, -2], [24, 4], [12, 22], [2, 23], [-12, 23], [-20, -28], [-3, -24], [28, -10], [-29, 12], [16, 28], [-22, 28], [31, 28]];   // 建物・コースと重ならない位置
+  const SMALL_TREES = [[-14, -9], [11, -25], [-19, -1], [24, 4], [13, 17], [2, 23], [-12, 23], [-20, -28], [0, -27], [31, -13], [-29, 12], [31, -30], [-28, 30], [6, -28]];   // 建物・コース・ボールの通り道と重ならない位置（scripts/check-town-layout.mjs で確認）
   function buildSmallTrees() { smallTreesHolder.clear(); smallTreesHolder.add(makeVoxels(SMALL_TREES.flatMap(([x, z]) => tree(t, x, z, 1, season)), 1)); }
 
   // ---- 登場人物 6 人（統一デザイン）。動きは frame() で付ける ----
@@ -433,8 +433,8 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     message: [0, 42, 0, true],            // 樹冠のてっぺん = メッセージ（高さは buildTreeShape が更新）
     research: [-12, 24, -6, true],        // 枝の上（左奥）
     publications: [12, 24, 9, true],       // 枝の上
-    about: [-17, 8, -16],                   // 研究棟の屋上
-    members: [-5, 7, 18],                   // キャッチボールの間
+    about: [-17, 8, -20],                   // 研究棟の屋上
+    members: [24, 6, 22],                   // キャッチボールの間（ボールの通り道の上）
     equipment: [12, 8, -8],                 // 電子顕微鏡
     join: [-12, 7, 10],                     // 立て看板
     access: [14, 5, 12],                    // 郵便受け
@@ -510,7 +510,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     climber.armL.rotation.x = -Math.PI * 0.85 + Math.sin(time * 2.5) * 0.3; climber.armR.rotation.x = -Math.PI * 0.85 - Math.sin(time * 2.5) * 0.3;
     climber.legL.rotation.x = -0.7 + Math.sin(time * 2.5 + 1.5) * 0.4; climber.legR.rotation.x = -0.7 - Math.sin(time * 2.5 + 1.5) * 0.4;
     // マラソン: 環状の道（半径 15.5）を一周 20 秒で走る
-    const ra = time * (Math.PI * 2 / 34), RX = 40, RZ = 24, RCZ = 6;                     // 楕円コース: 左右は土台の外（|x| > 33）に出る
+    const ra = time * (Math.PI * 2 / 34), RX = 40, RZ = 22, RCZ = 8;                     // 楕円コース: 左右は土台の外（|x| > 33）に出る。z は -14〜30（奥の建物列の手前を通る）
     const rx = Math.cos(ra) * RX, rz = RCZ + Math.sin(ra) * RZ, onPlate = Math.abs(rx) <= N + 1 && Math.abs(rz) <= N + 1;
     runner.g.position.set(rx, (onPlate ? GROUND_Y : PAGE_Y) + Math.abs(Math.sin(time * 9)) * 0.25, rz);
     runner.g.rotation.y = Math.atan2(-Math.sin(ra) * RX, Math.cos(ra) * RZ);                 // 進行方向（接線）を向く

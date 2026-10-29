@@ -91,8 +91,11 @@ a { color: inherit; text-decoration: none; }
 .nav-open .burger span { background: transparent; }
 .nav-open .burger span::before { transform: translateY(6px) rotate(45deg); }
 .nav-open .burger span::after { transform: translateY(-6px) rotate(-45deg); }
-.drawer-themes { display: flex; align-items: center; gap: 14px; margin-top: 18px; padding: 12px 10px; border-top: 1px solid var(--line); }
-.drawer-themes .en { font-size: 11px; letter-spacing: 0.2em; color: var(--muted); }
+/* 町の天気（季節・空の色＝配色）。メニューの下部にまとめる */
+.drawer-weather { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; padding: 14px 10px; border-top: 1px solid var(--line); }
+.drawer-weather > .en { font-size: 11px; letter-spacing: 0.2em; color: var(--accent2); text-transform: uppercase; }
+.weather-row { display: flex; align-items: center; gap: 14px; }
+.w-label { font-size: 13px; font-weight: 700; width: 48px; color: var(--text); }
 .theme-picker { display: flex; gap: 8px; }
 .season-picker { display: flex; gap: 6px; }
 .season-btn { font: inherit; font-size: 13px; font-weight: 700; width: 36px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
@@ -115,6 +118,9 @@ a { color: inherit; text-decoration: none; }
 .drawer li a { display: flex; flex-direction: column; padding: 14px 10px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 18px; border-radius: 8px; transition: background .15s, padding-left .15s; }
 .drawer li a:hover { background: var(--panel); padding-left: 16px; }
 .drawer li a .en { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent2); }
+.drawer li a .row { display: flex; align-items: baseline; gap: 10px; }
+.drawer li a .row small { font-size: 12px; font-weight: 500; color: var(--muted); }   /* 町の場所名の横に、従来のページ名を小さく添える */
+.brand small { font-size: 11px; font-weight: 500; letter-spacing: 0.2em; color: var(--muted); margin-left: 2px; }
 .drawer-foot { margin-top: auto; font-size: 13px; color: var(--muted); line-height: 1.7; }
 
 /* ページ切替: 画面全体が下から上へ滑り込む（Astro 既定の fade を上書き） */
@@ -130,6 +136,9 @@ a { color: inherit; text-decoration: none; }
 .page-head { margin-bottom: 20px; }
 .page-head h1 { font-size: clamp(28px, 4.5vw, 44px); margin: 0; font-weight: 900; line-height: 1.3; }
 .label { font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent2); margin: 0 0 10px; }
+.crumb { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 13px; color: var(--muted); }   /* 文章ページ: 町のどこにいるか（M2D TOWN ▸ 研究棟） */
+.crumb a { font-weight: 700; letter-spacing: 0.08em; color: var(--text); text-decoration: none; }
+.crumb a:hover { color: var(--accent2); }
 .prose { line-height: 1.95; }
 .prose h2 { font-size: 22px; margin: 2em 0 .6em; padding-left: 12px; border-left: 4px solid var(--accent2); }
 .prose h3 { font-size: 18px; margin: 1.6em 0 .5em; }
@@ -262,3 +271,11 @@ address { font-style: normal; line-height: 2; }
 .members-contact { margin-top: 32px; color: var(--muted); }
 .members-contact a { color: var(--accent2); text-decoration: underline; text-underline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .flip-inner { transition: none; } }
+
+/* ---- トップを直接開いたときの「Welcome to M2D TOWN」（約 1.8 秒で自然に消える。JS が無くても CSS だけで消える） ---- */
+.welcome { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: var(--bg); color: var(--text); pointer-events: none; animation: welcomeOut 1.8s ease forwards; }
+.welcome p { margin: 0; text-align: center; font-weight: 900; font-size: clamp(40px, 7vw, 96px); letter-spacing: 0.04em; line-height: 1; animation: welcomeIn .7s cubic-bezier(.2, .7, .2, 1) both; }
+.welcome .en { display: block; font-size: clamp(12px, 1.2vw, 16px); font-weight: 700; letter-spacing: 0.32em; text-transform: uppercase; color: var(--accent2); margin-bottom: 16px; }
+@keyframes welcomeOut { 0%, 62% { opacity: 1; visibility: visible; } 100% { opacity: 0; visibility: hidden; } }
+@keyframes welcomeIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .welcome { animation-duration: 1s; } .welcome p { animation: none; } }

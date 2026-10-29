@@ -215,7 +215,9 @@ export function renderPortrait(opts = {}, { w = 600, h = 720, pose = 'stand', an
 // 手に持つ小物（腕の先に付ける）
 function bat(len, color) { const v = [{ x: 0, y: -3.5, z: -0.5, c: color }]; for (let i = 0; i < len; i++) v.push({ x: 0, y: -3.5, z: i + 0.5, c: color }); return makeVoxels(v, CHAR_V); }   // 手の位置（腕の先端）から腕と直角に伸びるバット
 
-export function createDiorama(canvas, { themeName = 'yellow', seasonName = seasonForDate(), base = '/' } = {}) {
+// intro: 最初に町の中の看板「Welcome to M2D TOWN」に寄った状態から、引いてタウンビューになる演出
+// lite: 文章ページの背景用（影の解像度を落とし、body のクラス操作をしない）
+export function createDiorama(canvas, { themeName = 'yellow', seasonName = seasonForDate(), base = '/', intro = false, lite = false } = {}) {
   let t = THEMES[themeName] || THEMES.yellow;
   let season = SEASONS[seasonName] || SEASONS.autumn;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -229,7 +231,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
 
   const hemi = new THREE.HemisphereLight(t.hemiSky, t.hemiGround, t.hemiI); scene.add(hemi);
   const sun = new THREE.DirectionalLight(t.sun, t.sunI); sun.position.set(-50, 95, 60); sun.castShadow = true;   // 上やや手前・左の太陽: 上面が最も明るく、左側面が中間、右側面が暗い 3 トーン
-  sun.shadow.mapSize.set(4096, 4096); Object.assign(sun.shadow.camera, { left: -120, right: 120, top: 140, bottom: -120, far: 400 }); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
+  sun.shadow.mapSize.set(lite ? 2048 : 4096, lite ? 2048 : 4096); Object.assign(sun.shadow.camera, { left: -120, right: 120, top: 140, bottom: -120, far: 400 }); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
   scene.add(sun);
   const rim = new THREE.DirectionalLight(0xffffff, 0.5); rim.position.set(-40, 30, -40); scene.add(rim);
 
@@ -386,8 +388,34 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   });
   // 小さな木（季節で色が変わる）
   const smallTreesHolder = new THREE.Group(); world.add(smallTreesHolder);
-  const SMALL_TREES = [[-14, -9], [11, -25], [-19, -1], [24, 4], [13, 17], [2, 23], [-12, 23], [-20, -28], [0, -27], [31, -13], [-29, 12], [31, -30], [-28, 30], [6, -28]];   // 建物・コース・ボールの通り道と重ならない位置（scripts/check-town-layout.mjs で確認）
+  const SMALL_TREES = [[-14, -9], [11, -25], [-19, -1], [24, 4], [13, 17], [2, 23], [-12, 23], [-20, -28], [0, -27], [31, -13], [-29, 12], [31, -30], [14, -29], [6, -28]];   // 建物・コース・ボールの通り道と重ならない位置（scripts/check-town-layout.mjs で確認）
   function buildSmallTrees() { smallTreesHolder.clear(); smallTreesHolder.add(makeVoxels(SMALL_TREES.flatMap(([x, z]) => tree(t, x, z, 1, season)), 1)); }
+
+  // ---- 看板「Welcome to M2D TOWN」（土台の手前左の角、正面向き）。ページを開いた直後はここに寄っている ----
+  const SIGN = { x: -26, z: 29.5, w: 10, h: 5, y0: 3.5 };            // 板の幅・高さ・下端の高さ。中心は (x, y0 + h/2, z)
+  const signCanvas = document.createElement('canvas'); signCanvas.width = 1024; signCanvas.height = 512;
+  const signTex = new THREE.CanvasTexture(signCanvas); signTex.colorSpace = THREE.SRGBColorSpace; signTex.anisotropy = 4;
+  function drawSign() {
+    const c = signCanvas.getContext('2d'), W = signCanvas.width, H = signCanvas.height;
+    const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+    c.fillStyle = hex(t.sign); c.fillRect(0, 0, W, H);
+    c.strokeStyle = hex(t.letter); c.lineWidth = 14; c.strokeRect(28, 28, W - 56, H - 56);   // 縁取り
+    c.fillStyle = hex(t.letter); c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = '700 54px "Noto Sans JP", "Helvetica Neue", Arial, sans-serif'; c.fillText('W E L C O M E   T O', W / 2, 150);
+    c.font = '900 200px "Noto Sans JP", "Helvetica Neue", Arial, sans-serif'; c.fillText('M2D TOWN', W / 2, 322);
+    signTex.needsUpdate = true;
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawSign);   // Web フォントが届いたら描き直す
+  addThemed((th) => {
+    drawSign();
+    const wood = new THREE.MeshLambertMaterial({ color: th.trunk });
+    const face = new THREE.MeshLambertMaterial({ map: signTex });
+    const board = new THREE.Mesh(new THREE.BoxGeometry(SIGN.w, SIGN.h, 0.6), [wood, wood, wood, wood, face, wood]);   // +z 面だけ文字
+    board.position.set(SIGN.x, SIGN.y0 + SIGN.h / 2, SIGN.z); board.castShadow = true; board.receiveShadow = true;
+    const posts = [];
+    for (let y = 0; y < SIGN.y0 + 1; y++) for (const dx of [-SIGN.w / 2 + 1, SIGN.w / 2 - 1]) posts.push({ x: SIGN.x + dx, y: y + 0.5, z: SIGN.z, c: th.trunk });
+    return [board, makeVoxels(posts, 1)];
+  });
 
   // ---- 登場人物 6 人（統一デザイン）。動きは frame() で付ける ----
   const chars = {};
@@ -463,6 +491,25 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   const ROLL = 0;                                       // カメラの傾き（2026-10-27 ユーザー要望で 0 に戻した）
   const ORBIT_OFF = 7;                                  // 公転の中心を模型中心から x 方向に 7 ずらす → 模型が画面上で左右にゆっくり漂い、公転が大きく見える
   let orbit = 0;                                          // 観測者（カメラ）が模型の周りを回る角度。模型自体は回さない
+  // ---- カメラの「寄り」: 基本のタウンビュー枠と、寄り先（看板 or 目印）の枠を重み w で混ぜる ----
+  // 寄り先の枠 = { target: 注視点, dist: 距離, elev: 見下ろし tan, film: 画面上の横ずらし（film 幅比） }
+  const INTRO_HOLD = 1.2, INTRO_DUR = 2.6;               // 看板に留まる秒数と、引いていく秒数
+  let introOn = intro && !prefersReduced;                 // 看板から引く演出の最中か
+  let focusKey = null, focusFrom = null;                  // 寄っている目印のキー、寄り先の枠（離れる途中も保持）
+  let focusW = 0, focusTween = null;                      // 目印への寄りの重み（0〜1）と、その補間 { from, to, t0, dur }
+  const easeIO = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
+  const hotspotWorld = (key, out) => { const pos = HOTSPOTS[key]; if (!pos) return null; if (pos[3]) out.set(pos[0] * bigTree.scale.x, pos[1] * bigTree.scale.y, pos[2] * bigTree.scale.z); else out.set(pos[0], pos[1], pos[2]); return world.localToWorld(out); };
+  // 目印に寄る / 離れる（null）。板（メッセージ・場所）を開くときに index.astro から呼ぶ
+  function focus(key) {
+    introOn = false;                                      // 演出の途中なら打ち切る
+    const now = timer.getElapsed();
+    if (key && HOTSPOTS[key]) {
+      const tgt = hotspotWorld(key, new THREE.Vector3());
+      const treeTop = key === 'message';
+      focusFrom = { target: tgt.clone().add(new THREE.Vector3(0, treeTop ? -6 : -2, 0)), distF: treeTop ? 0.55 : 0.46, elev: treeTop ? 0.30 : 0.36, film: -0.26 };   // 板が左 52% を覆うので、注視点は画面幅の約 76% に
+      focusKey = key; focusTween = { from: focusW, to: 1, t0: now, dur: 1.0 };
+    } else { focusKey = null; focusTween = { from: focusW, to: 0, t0: now, dur: 0.8 }; }
+  }
   const timer = new THREE.Timer();
   const m4 = new THREE.Matrix4();
   let alive = true, lastTown = null;
@@ -543,21 +590,38 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     const dTown = Math.max(dVert, dHoriz(wide ? 0.76 : 1)) * 1.0;   // 右寄せ（中心 61%）でも右端の人形まで見切れない大きさ
     const d = dHero + (dTown - dHero) * pe;
     const fw = camera.getFilmWidth();
-    camera.filmOffset = wide ? -fw * (0.23 * (1 - pe) + 0.11 * pe) : 0;   // エントランスでは中心を画面幅の約 73% に、タウンビューでは 61% に置く
+    // 横ずらし（film0）: エントランスでは中心を画面幅の約 73% に、タウンビューでは 61% に置く（寄りの混合後に下で設定）
     const elev = 0.404;                                               // 見下ろし角 22°（tan 22° = 0.404）
     camera.up.set(Math.sin(ROLL * (1 - pe)), Math.cos(ROLL * (1 - pe)), 0);
     const ocx = ORBIT_OFF * (1 - pe);                                 // 公転中心（タウンビューでは模型中心に戻す）
-    camera.position.set(ocx + Math.sin(orbit) * d, CENTER_Y + d * elev, Math.cos(orbit) * d); camera.lookAt(ocx, CENTER_Y, 0); camera.updateProjectionMatrix();   // 月が地球を回るように、カメラが周回
+    // 寄りの重み: 看板イントロ（1 → 0）か、目印への寄り（0 → 1 → 0）
+    let cw = 0, ov = null;
+    if (introOn) {
+      const u = (time - INTRO_HOLD) / INTRO_DUR;
+      cw = u <= 0 ? 1 : 1 - easeIO(Math.min(1, u)); if (u >= 1) introOn = false;
+      const tanH = tanV * camera.aspect;
+      ov = { target: new THREE.Vector3(SIGN.x, SIGN.y0 + SIGN.h / 2 + 0.5, SIGN.z), dist: Math.max(14, SIGN.w / 2 / (tanH * 0.52)), elev: 0.12, film: 0 };   // 看板が画面幅の約 52% に収まる距離、ほぼ正面
+    } else if (focusTween || focusW > 0) {
+      if (focusTween) { const u = Math.min(1, (time - focusTween.t0) / focusTween.dur); focusW = focusTween.from + (focusTween.to - focusTween.from) * easeIO(u); if (u >= 1) focusTween = null; }
+      cw = focusW; ov = focusFrom && { ...focusFrom, dist: dTown * focusFrom.distF };
+    }
+    if (!lite) document.body.classList.toggle('intro', introOn);
+    const b0 = { x: ocx, y: CENTER_Y, z: 0 };
+    const film0 = lite ? -0.30 : wide ? -(0.23 * (1 - pe) + 0.11 * pe) : 0;   // 文章ページの背景では右に寄せ、本文の脇から町が覗くようにする
+    const Tg = ov ? { x: b0.x + (ov.target.x - b0.x) * cw, y: b0.y + (ov.target.y - b0.y) * cw, z: b0.z + (ov.target.z - b0.z) * cw } : b0;
+    const Dg = ov ? d + (ov.dist - d) * cw : d, Eg = ov ? elev + (ov.elev - elev) * cw : elev, Fg = ov && wide ? film0 + (ov.film - film0) * cw : film0;
+    camera.filmOffset = Fg * fw;
+    camera.position.set(Tg.x + Math.sin(orbit) * Dg, Tg.y + Dg * Eg, Tg.z + Math.cos(orbit) * Dg); camera.lookAt(Tg.x, Tg.y, Tg.z); camera.updateProjectionMatrix();   // 月が地球を回るように、カメラが周回
     world.position.set(0, wide ? 0 : -20 * (1 - pe), 0);
     // 自転: ヒーローではやや速く、タウンビューではゆっくり。ドラッグ中は止め、離すと惰性のあと再開
     if (!dragging) {
-      const spin = prefersReduced ? 0 : (prog < 0.5 ? 0.10 : 0.07);   // ゆっくり（約 90 秒 / 周）
+      const spin = prefersReduced ? 0 : (prog < 0.5 ? 0.10 : 0.07) * (introOn ? 0.5 : 1);   // ゆっくり（約 90 秒 / 周）。看板に寄っている間はさらに半分
       orbit -= dt * spin + dragVel; dragVel *= 0.92;
     }
     const town = prog > 0.55;
     if (town !== lastTown) {
       lastTown = town;
-      document.body.classList.toggle('town-view', town); document.body.classList.toggle('entrance-view', !town);
+      if (!lite) { document.body.classList.toggle('town-view', town); document.body.classList.toggle('entrance-view', !town); }
       if (!town) {   // エントランスに戻ったら、目印の説明と点線を消す
         document.querySelectorAll('.marker.hover, .spot-info.on').forEach((el) => el.classList.remove('hover', 'on'));
       }
@@ -575,7 +639,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       const pos = HOTSPOTS[el.dataset.spot]; if (!pos) continue;
       if (pos[3]) v3.set(pos[0] * bigTree.scale.x, pos[1] * bigTree.scale.y, pos[2] * bigTree.scale.z); else v3.set(pos[0], pos[1], pos[2]);
       world.localToWorld(v3); v3.project(camera);
-      const visible = v3.z < 1 && document.body.classList.contains('town-view');   // 目印はタウンビューだけに出す
+      const visible = v3.z < 1 && document.body.classList.contains('town-view') && !introOn;   // 目印はタウンビューだけに出す（看板イントロ中は出さない）
       el.style.transform = `translate(${(v3.x * 0.5 + 0.5) * w}px, ${(-v3.y * 0.5 + 0.5) * h}px)`;
       el.style.opacity = visible ? '1' : '0'; el.style.pointerEvents = visible ? 'auto' : 'none';
       el._sx = (v3.x * 0.5 + 0.5) * w; el._sy = (-v3.y * 0.5 + 0.5) * h;
@@ -626,5 +690,5 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   applyTheme(themeName); applySeason(seasonName);
   frame();
   function dispose() { alive = false; renderer.dispose(); }
-  return { applyTheme, applySeason, applyTreeStyle, capture, renderPortrait, spawnTrail, dispose, renderer, camera, world, HOTSPOTS, TREE_STYLES, SEASON_STYLE };
+  return { applyTheme, applySeason, applyTreeStyle, capture, renderPortrait, spawnTrail, focus, dispose, renderer, camera, world, HOTSPOTS, TREE_STYLES, SEASON_STYLE };
 }

@@ -29,6 +29,7 @@ const pageTitle = title + '｜' + site.labName + '（' + site.labNameAlt + '）'
     <ClientRouter />
   </head>
   <body class="subpage">
+    <canvas id="town-bg" class="town-bg" aria-hidden="true"></canvas>   <!-- 文章ページの背景にも町を薄く敷く（「町の中にいる」感じ） -->
     <SiteChrome />
     <div class="flip">
       <main class="page wrap">
@@ -43,5 +44,22 @@ const pageTitle = title + '｜' + site.labName + '（' + site.labNameAlt + '）'
       </main>
       <footer class="footer wrap">&copy; {new Date().getFullYear()} {site.labNameEn} / {site.universityEn}</footer>
     </div>
+    <script>
+      // 背景の町（軽量版）。トップと同じ模型を薄く敷き、季節・配色の切替にも追従する
+      import { createDiorama } from '../scripts/diorama.js';
+      let d = null;
+      function init() {
+        const c = document.getElementById('town-bg'); if (!c || c.dataset.ready) return; c.dataset.ready = '1';
+        let sv = null; try { sv = localStorage.getItem('m2d-season'); } catch (e) {}
+        try { d = createDiorama(c, { themeName: document.documentElement.dataset.theme || 'yellow', seasonName: ['spring', 'summer', 'autumn', 'winter'].includes(sv) ? sv : undefined, lite: true }); }
+        catch (e) { console.warn('背景の町を初期化できません', e); c.remove(); }
+      }
+      document.addEventListener('m2d:theme', (e) => { if (d) d.applyTheme(e.detail); });
+      document.addEventListener('m2d:season', (e) => { if (d) d.applySeason(e.detail); });
+      document.addEventListener('astro:before-swap', () => { if (d) { d.dispose(); d = null; } });
+      document.addEventListener('astro:after-swap', () => { window.__m2dSwapped = true; });
+      document.addEventListener('astro:page-load', init);
+      init();
+    </script>
   </body>
 </html>

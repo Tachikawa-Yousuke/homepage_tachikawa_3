@@ -3,6 +3,7 @@
 import site from '../data/site.json';
 import { getCollection } from 'astro:content';
 import { withBase } from '../lib/url';
+import { PLACES } from '../lib/town';
 import { ClientRouter } from 'astro:transitions';
 import SiteChrome from '../components/SiteChrome.astro';
 
@@ -29,6 +30,9 @@ const spots = [
   { key: 'join', en: 'Join us', label: '進学・配属', href: withBase('/join'), desc: '研究室見学・Web 面談は随時受け付けています。学部生も大学院進学希望者も歓迎。' },
   { key: 'access', en: 'Access', label: 'アクセス', href: withBase('/access'), desc: '伊都キャンパス ウエスト4号館 428・414・401 室。問い合わせはフォームから。' },
 ];
+// 町の場所名（メニューと同じ語彙）と、板で開く目印（文章ページの中身を読み込む）。メンバー・業績は長いのでページへ移動する
+const PANEL_SPOTS = ['about', 'research', 'equipment', 'join', 'access'];
+for (const sp of spots) { sp.place = PLACES.find((p) => p.en === sp.en)?.place || ''; sp.panel = PANEL_SPOTS.includes(sp.key); }
 const themes = [
   { key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, { key: 'green', label: '緑' }, { key: 'black', label: '黒' },
 ];
@@ -54,11 +58,10 @@ const themes = [
   <body>
     <canvas id="diorama" data-base={import.meta.env.BASE_URL} aria-label="大きな一本の木を中心にした町の 3D 模型"></canvas>
     <noscript><div class="nojs"><p>3D 模型の表示には JavaScript が必要です。</p></div></noscript>
-    <div id="welcome" class="welcome" aria-hidden="true"><p><span class="en">Welcome to</span>M2D TOWN</p></div>
     <svg class="leader" id="leader" aria-hidden="true"><path d="" /></svg>
     <div id="trail" aria-hidden="true"></div>   <!-- ランニング人形が土台の外へ出ると、ここに足跡が下から上へ付いて消える -->
     <div id="markers" aria-label="模型上のリンク">
-      {spots.map((sp) => <a class="marker" data-spot={sp.key} href={sp.href}><i></i><span>{sp.label}</span></a>)}
+      {spots.map((sp) => <a class="marker" data-spot={sp.key} data-place={sp.place} data-panel={sp.panel ? '1' : undefined} href={sp.href}><i></i><span>{sp.label}</span></a>)}
     </div>
 
     <!-- メッセージ板: 大木の目印「メッセージ」をクリックで左から出る。中身はキャッチコピー → 紹介文 → 問い合わせ -->
@@ -75,6 +78,13 @@ const themes = [
         </div>
       <a class="hero-cta" href={site.contactFormUrl} target="_blank" rel="noopener"><span class="cta-main">お問い合わせフォーム ▶</span><span class="cta-sub">研究室見学・Web 面談は随時受付中</span></a>
     </aside>
+    <!-- 場所の板: 研究棟・大木の枝・装置棟・立て看板・郵便受けの目印をクリックで、その文章ページの中身をここに読み込んで出す -->
+    <aside id="place" class="msg-panel place-panel" aria-label="場所の案内" aria-hidden="true">
+      <button class="msg-close" type="button" aria-label="閉じる">×</button>
+      <p class="crumb"><span>M2D TOWN</span><span aria-hidden="true">▸</span><span class="place-name"></span></p>
+      <div class="place-body"></div>
+      <p class="place-foot"><a class="place-more" href="#">このページを全画面で開く ▶</a></p>
+    </aside>
 
     <SiteChrome />
 
@@ -89,7 +99,7 @@ const themes = [
         </div>
         <div class="town-title" aria-hidden="true"><span class="en">Town view</span>M2D<br />TOWN</div>
         <div class="spot-panel" aria-live="polite">
-          {spots.map((sp) => <div class="spot-info" data-for={sp.key}><span class="en">{sp.en}</span><h3>{sp.label}</h3><p>{sp.desc}</p></div>)}
+          {spots.map((sp) => <div class="spot-info" data-for={sp.key}><span class="en">{sp.place} · {sp.en}</span><h3>{sp.label}</h3><p>{sp.desc}</p></div>)}
         </div>
       </section>
 
@@ -106,7 +116,8 @@ const themes = [
         canvas.dataset.ready = '1';
         const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
         let sv = null; try { sv = localStorage.getItem('m2d-season'); } catch (e) {}
-        try { d = createDiorama(canvas, { themeName: current(), seasonName: SEASONS.includes(sv) ? sv : undefined, base: canvas.dataset.base || '/' }); window.__d = d; }
+        const intro = !location.hash && !window.__m2dSwapped;   // 直接開いたときだけ、看板に寄った状態から引く
+        try { d = createDiorama(canvas, { themeName: current(), seasonName: SEASONS.includes(sv) ? sv : undefined, base: canvas.dataset.base || '/', intro }); window.__d = d; }
         catch (e) { console.warn('WebGL を初期化できません', e); canvas.style.display = 'none'; }
       }
       document.addEventListener('m2d:theme', (e) => { if (d) d.applyTheme(e.detail); });
@@ -124,26 +135,56 @@ const themes = [
         if (e.relatedTarget instanceof Element && e.relatedTarget.closest('.marker') === m) return;
         m.classList.remove('hover');
       });
-      // メッセージ板の開閉（目印「メッセージ」・× ボタン・暗幕・Esc・URL の #message）
-      const msgOpen = (on) => { document.body.classList.toggle('msg-open', on); const m = document.getElementById('message'); if (m) m.setAttribute('aria-hidden', String(!on)); try { history.replaceState(null, '', on ? '#message' : location.pathname + location.search); } catch (e) {} };
-      if (!document.documentElement.dataset.msgBound) {
-        document.documentElement.dataset.msgBound = '1';
+      // ---- 板の開閉: メッセージ（#message）と場所の板（#about などは文章ページの中身を読み込んで表示）。開くとカメラがその目印に寄る ----
+      const PANEL_SPOTS = ['about', 'research', 'equipment', 'join', 'access'];
+      const placeCache = {};
+      let openKey = null;
+      const setHash = (h) => { try { history.replaceState(null, '', h ? '#' + h : location.pathname + location.search); } catch (e) {} };
+      async function loadPlace(key) {
+        const marker = document.querySelector('.marker[data-spot="' + key + '"]'), panel = document.getElementById('place'); if (!marker || !panel) return;
+        const body = panel.querySelector('.place-body');
+        panel.querySelector('.place-name').textContent = marker.dataset.place || '';
+        panel.querySelector('.place-more').href = marker.href;
+        if (!placeCache[key]) {
+          body.innerHTML = '<p class="place-loading">読み込み中…</p>';
+          try {
+            const html = await (await fetch(marker.href, { credentials: 'same-origin' })).text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const main = doc.querySelector('main.page'); main?.querySelector('.crumb')?.remove();
+            placeCache[key] = main ? main.innerHTML : '<p>読み込めませんでした。</p>';
+          } catch (e) { placeCache[key] = '<p>読み込めませんでした。<a href="' + marker.href + '">ページを開く</a></p>'; }
+        }
+        if (openKey === key) { body.innerHTML = placeCache[key]; panel.scrollTop = 0; }
+      }
+      function openSpot(key) {   // key: 'message' | PANEL_SPOTS のどれか | null（閉じる）
+        openKey = key;
+        const isMsg = key === 'message', isPlace = !!key && PANEL_SPOTS.includes(key);
+        document.body.classList.toggle('msg-open', isMsg); document.body.classList.toggle('place-open', isPlace);
+        document.getElementById('message')?.setAttribute('aria-hidden', String(!isMsg));
+        document.getElementById('place')?.setAttribute('aria-hidden', String(!isPlace));
+        if (isPlace) loadPlace(key);
+        if (d) d.focus(isMsg || isPlace ? key : null);
+        setHash(isMsg || isPlace ? key : null);
+      }
+      const spotFromHash = () => { const k = location.hash.slice(1); return k === 'message' || PANEL_SPOTS.includes(k) ? k : null; };
+      if (!window.__m2dSpotBound) {
+        window.__m2dSpotBound = true;
+        // capture 段階で拾い、ClientRouter（ページ遷移）より先に止める。そうしないと板が開く前に /about などへ移動してしまう
         document.addEventListener('click', (e) => {
           const t = e.target instanceof Element ? e.target : null; if (!t) return;
-          if (t.closest('.marker[data-spot="message"], a[href$="#message"]')) { e.preventDefault(); msgOpen(true); return; }   // 目印、またはメニューの「大木のてっぺん」
-          if (t.closest('.msg-close, #msg-shade')) msgOpen(false);
-        });
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('msg-open')) msgOpen(false); });
-        document.addEventListener('astro:page-load', () => { if (location.hash === '#message') msgOpen(true); });
-        addEventListener('hashchange', () => msgOpen(location.hash === '#message'));   // メニューの「大木のてっぺん（メッセージ）」= 同じページ内の #message
+          const m = t.closest('.marker'); if (m && (m.dataset.spot === 'message' || m.dataset.panel)) { e.preventDefault(); e.stopPropagation(); openSpot(m.dataset.spot); return; }
+          if (t.closest('a[href$="#message"]')) { e.preventDefault(); e.stopPropagation(); openSpot('message'); document.body.classList.remove('nav-open'); document.getElementById('drawer')?.setAttribute('aria-hidden', 'true'); return; }   // メニューの「大木のてっぺん」（メニューは閉じる）
+          if (t.closest('.msg-close, #msg-shade')) openSpot(null);
+        }, true);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && openKey) openSpot(null); });
+        addEventListener('hashchange', () => openSpot(spotFromHash()));
+        document.addEventListener('astro:page-load', () => { const k = spotFromHash(); if (k) openSpot(k); });
       }
-      if (location.hash === '#message') msgOpen(true);
-      document.addEventListener('astro:before-swap', () => { if (d) { d.dispose(); d = null; } });
-      // 「Welcome to M2D TOWN」はページを直接開いたときだけ（CSS アニメが終わったら要素ごと外す。サイト内の移動で戻ってきたときは出さない）
-      document.addEventListener('astro:after-swap', () => document.getElementById('welcome')?.remove());
-      document.getElementById('welcome')?.addEventListener('animationend', (e) => { if (e.animationName === 'welcomeOut') e.currentTarget.remove(); });
+      document.addEventListener('astro:before-swap', () => { if (d) { d.dispose(); d = null; } openKey = null; });
+      document.addEventListener('astro:after-swap', () => { window.__m2dSwapped = true; });   // サイト内の移動で来たときは看板イントロを出さない
       document.addEventListener('astro:page-load', init);
       init();
+      { const k = spotFromHash(); if (k) openSpot(k); }
     </script>
   </body>
 </html>

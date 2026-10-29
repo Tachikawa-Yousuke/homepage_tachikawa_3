@@ -6,7 +6,7 @@
 
 ## 更新のしかた
 
-日常の更新（メンバー・業績・装置・写真）は [docs/content-guide.md](docs/content-guide.md) の手順書を参照。触るのは `src/content/` のデータファイルと `public/images/` の画像だけで、ビルド後に `npm run check` がリンク切れ・画像欠けを点検する（GitHub Actions でも自動実行）。
+日常の更新（メンバー・業績・装置・写真）は [更新の仕方.md](更新の仕方.md) の手順書を参照。触るのは `src/content/` のデータファイルと `public/images/` の画像だけで、ビルド後に `npm run check` がリンク切れ・画像欠けを点検する（GitHub Actions でも自動実行）。
 
 ## 構成
 

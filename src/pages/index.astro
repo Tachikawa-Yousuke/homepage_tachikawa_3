@@ -8,7 +8,7 @@ import { ClientRouter } from 'astro:transitions';
 import SiteChrome from '../components/SiteChrome.astro';
 
 const research = (await getCollection('research')).sort((a, b) => a.data.order - b.data.order);
-const news = (await getCollection('news')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
+const news = (await getCollection('news')).sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 5);   // メッセージ板の下に最新 5 件
 const publications = await getCollection('publications');
 const equipment = await getCollection('equipment');
 const members = await getCollection('members');
@@ -79,6 +79,15 @@ const themes = [
           <p><b>力学を土台に、新しい科学へ。</b>本研究室は力学を基盤とした実験研究を中心に据えています。基礎物理を理解しながら新しい科学の発展を目指しています。材料が好き、ナノ（小さいもの）に興味を持っている、原子を見たい、新しい技術や知識に触れてみたい、とにかく突き詰めて考えることが好き、など一つでも当てはまって興味がある人はぜひ<a href={site.contactFormUrl} target="_blank" rel="noopener">問い合わせフォーム</a>から気軽にお問い合わせください（メールでもOKです）。研究室見学やWeb面談は随時受け付けています。</p>
         </div>
       <a class="hero-cta" href={site.contactFormUrl} target="_blank" rel="noopener"><span class="cta-main">お問い合わせフォーム ▶</span><span class="cta-sub">研究室見学・Web 面談は随時受付中</span></a>
+      <!-- お知らせ: src/content/news/*.md の新しい順（最大 5 件）。問い合わせボックスの下 -->
+      {news.length > 0 && (
+        <section class="msg-news" aria-label="お知らせ">
+          <span class="en">News · お知らせ</span>
+          <ul>
+            {news.map((n) => <li><time datetime={n.data.date.toISOString().slice(0, 10)}>{n.data.date.toISOString().slice(0, 10).replace(/-/g, '.')}</time><span>{n.data.title}</span></li>)}
+          </ul>
+        </section>
+      )}
     </aside>
     <!-- 場所の板: 研究棟・大木の枝・装置棟・立て看板・郵便受けの目印をクリックで、その文章ページの中身をここに読み込んで出す -->
     <aside id="place" class="msg-panel place-panel" aria-label="場所の案内" aria-hidden="true">

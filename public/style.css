@@ -316,3 +316,10 @@ body.intro .weather { opacity: 0; pointer-events: none; }
 .place-panel .faculty-row { grid-template-columns: 240px; }
 .place-panel .member-group { margin-bottom: 28px; }
 .place-panel .bio, .place-panel .members-contact, .place-panel .member-group:has(.alumni-list) { display: none; }   /* 板の中は名刺だけ（文章・卒業生の一覧は出さない） */
+
+/* ---- メッセージ板の下のお知らせ ---- */
+.msg-news { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
+.msg-news .en { margin-bottom: 12px; }
+.msg-news ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.msg-news li { display: grid; grid-template-columns: 7.5em 1fr; gap: 14px; align-items: baseline; font-size: 14px; line-height: 1.7; }
+.msg-news time { font-weight: 700; color: var(--muted); letter-spacing: .06em; font-size: 12px; font-variant-numeric: tabular-nums; }

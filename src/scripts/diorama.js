@@ -344,7 +344,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   // 舞う粒子（花びら・葉・雪）
   const PMAX = 300;
   const particleMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff }), PMAX);
-  particleMesh.count = PMAX; world.add(particleMesh);
+  particleMesh.count = PMAX; // world.add(particleMesh);   // 2026-10-29: 大木の周りのボクセル粒子は非表示（季節の演出は画面全体の weatherfx.js に移した）
   const particles = Array.from({ length: PMAX }, () => ({ x: 0, y: -10, z: 0, vx: 0, vz: 0, w: Math.random() * 6.28, life: 0 }));
   function respawn(pt) {
     const ang = Math.random() * 6.28, r = Math.random() * (season.bare ? 30 : CANOPY_RX);
@@ -418,7 +418,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   function drawLetters(reveal = signState.letters) {               // 文字だけ（背景は透明）。reveal: 左から何割まで見せるか
     if (reveal === lettersDrawn) return; lettersDrawn = reveal;
     const c = letterCanvas.getContext('2d'), W = letterCanvas.width, H = letterCanvas.height;
-    const dark = hex(t.letter), accent = hex(t.atom);
+    const dark = hex(t.letter);
     c.clearRect(0, 0, W, H);
     c.save(); c.beginPath(); c.rect(0, 0, W * reveal, H); c.clip();
     c.textBaseline = 'middle';
@@ -427,14 +427,11 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     const tw = drawTracked(c, 'WELCOME TO', W / 2, 128, 13);
     c.globalAlpha = 0.45; c.fillRect(W / 2 - tw / 2 - 150, 126, 110, 3); c.fillRect(W / 2 + tw / 2 + 40, 126, 110, 3);
     c.globalAlpha = 1;
-    // 中段: M2D TOWN（極太）＋ ベースラインに小さなアクセント色の四角（サイトのブランドマークと同じ）
+    // 中段: M2D TOWN（極太）
     const title = 'M2D TOWN'; let px = 196; c.font = signFont(900, px);
     const maxW = W - 2 * 110; let mw = c.measureText(title).width;
     if (mw > maxW) { px = Math.floor(px * maxW / mw); c.font = signFont(900, px); mw = c.measureText(title).width; }   // 縁取りの内側に収める
-    const sq = Math.round(px * 0.11), gap = Math.round(px * 0.07), x0 = W / 2 - (mw + gap + sq) / 2, ty = 300;
-    c.textAlign = 'left'; c.fillStyle = dark; c.fillText(title, x0, ty);
-    c.fillStyle = accent; c.fillRect(x0 + mw + gap, ty + px * 0.36 - sq, sq, sq);
-    c.textAlign = 'center';
+    c.fillStyle = dark; c.fillText(title, W / 2, 300);
     // 下段: 研究室名（ごく小さく、字間広く）
     c.fillStyle = dark; c.globalAlpha = 0.6; c.font = signFont(600, 19);
     drawTracked(c, 'MECHANICS FOR MATERIAL DESIGN LAB  ·  KYUSHU UNIVERSITY', W / 2, 416, 4); c.globalAlpha = 1;   // 板の縁取りの内側に収まる幅
@@ -483,7 +480,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       const t = dir > 0 ? i / (n - 1) : 1 - i / (n - 1);                                    // 戻るときは上から順に
       const x = x0 + Math.sin(t * Math.PI * 1.5) * innerWidth * 0.07 + (i % 2 ? 9 : -9);     // 緩い S 字に蛇行、左右の足を交互に
       const y = h - 40 - t * (h - 90);
-      const ang = -Math.cos(t * Math.PI * 1.5) * 28 + (i % 2 ? 8 : -8) + (dir > 0 ? 0 : 180);   // 進行方向に足先を向ける
+      const ang = -Math.cos(t * Math.PI * 1.5) * 28 + (i % 2 ? 8 : -8) + (dir > 0 ? 180 : 0);   // 進行方向に足先を向ける（2026-10-29: 向きが逆だったので反転）
       p.style.transform = `translate(${x}px, ${y}px) rotate(${ang}deg)`;
       layer.appendChild(p); setTimeout(() => p.remove(), 5200);
     }, i * 240);
@@ -622,10 +619,10 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     runnerWasOut = runnerOut;
     swingLeg(runner, time * 9, 0.8); runner.armL.rotation.x = Math.sin(time * 9 + Math.PI) * 0.9 - 0.4; runner.armR.rotation.x = Math.sin(time * 9) * 0.9 - 0.4;
     // 腰が痛そうな人: 前かがみで腰に手を当て、ときどき伸ばそうとして戻る
-    const bp = chars.backpain, strain = 0.5 + Math.max(0, Math.sin(time * 0.8)) * 0.25;
-    bp.torso.rotation.x = strain; bp.head.rotation.x = strain - 0.2;
-    bp.armR.rotation.x = Math.PI * 0.7; bp.armR.rotation.z = -0.5;      // 右手を腰の後ろへ
-    bp.armL.rotation.x = strain * 0.6;                                   // 左手は膝の方へ
+    const bp = chars.backpain, lean = Math.sin(time * 0.9);              // > 0: 前かがみ、< 0: 腰を後ろにそらす（交互に繰り返す）
+    bp.torso.rotation.x = lean > 0 ? lean * 0.65 : lean * 0.35; bp.head.rotation.x = lean * 0.3;
+    bp.armR.rotation.x = 0.8 - Math.min(0, lean) * 0.3; bp.armR.rotation.z = -0.45;   // 両手を腰（骨盤の後ろ）に当てる（左右対称）。そらすときは少し上へ
+    bp.armL.rotation.x = 0.8 - Math.min(0, lean) * 0.3; bp.armL.rotation.z = 0.45;
     // イントロ: 看板の前を左から右へのろのろ歩き、通り過ぎた所から文字が現れる。止まった後は板・柱が現れる
     const walking = introOn && time < T_WALK;
     if (walking) {

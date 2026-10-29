@@ -1,21 +1,21 @@
 /**
  * サイト全体を「M2D TOWN」として見せるための語彙。
  * メニュー（SiteChrome）と文章ページの見出し（Base）で共通に使う。
- * place: 町の中の場所名（主表記）、label: 従来のページ名（副表記）。
- * 模型（diorama.js の HOTSPOTS）の目印の位置と対応させている。
+ * label / en: ページ名。place / placeEn は同じ値（町の場所名は廃止）。
  */
 export interface Place { path: string; place: string; placeEn: string; label: string; en: string; }
 
 export const PLACES: Place[] = [
-  { path: '/',             place: '広場',        placeEn: 'Town square',   label: 'ホーム',     en: 'Home' },
-  { path: '/#message',     place: '大木のてっぺん', placeEn: 'Treetop',      label: 'メッセージ',  en: 'Message' },
-  { path: '/about',        place: '研究棟',      placeEn: 'Main building', label: '研究室概要',  en: 'About' },
-  { path: '/research',     place: '大木の枝',    placeEn: 'Branches',      label: '研究テーマ',  en: 'Research' },
-  { path: '/members',      place: '住人',        placeEn: 'Residents',     label: 'メンバー',    en: 'Members' },
-  { path: '/publications', place: '大木の実',    placeEn: 'Fruits',        label: '業績',       en: 'Publications' },
-  { path: '/equipment',    place: '装置棟',      placeEn: 'Workshop',      label: '装置・設備',  en: 'Apparatus' },
-  { path: '/join',         place: '立て看板',    placeEn: 'Signboard',     label: '進学・配属',  en: 'Join us' },
-  { path: '/access',       place: '郵便受け',    placeEn: 'Mailbox',       label: 'アクセス',    en: 'Access' },
+  // 2026-10-29: 町の場所名（広場・研究棟など）はユーザー要望で廃止し、通常のページ名に戻した。place/placeEn は label/en と同じ値を保持
+  { path: '/',             place: 'ホーム',     placeEn: 'Home',         label: 'ホーム',     en: 'Home' },
+  { path: '/#message',     place: 'メッセージ',  placeEn: 'Message',      label: 'メッセージ',  en: 'Message' },
+  { path: '/about',        place: '研究室概要',  placeEn: 'About',        label: '研究室概要',  en: 'About' },
+  { path: '/research',     place: '研究テーマ',  placeEn: 'Research',     label: '研究テーマ',  en: 'Research' },
+  { path: '/members',      place: 'メンバー',    placeEn: 'Members',      label: 'メンバー',    en: 'Members' },
+  { path: '/publications', place: '業績',       placeEn: 'Publications', label: '業績',       en: 'Publications' },
+  { path: '/equipment',    place: '装置・設備',  placeEn: 'Apparatus',    label: '装置・設備',  en: 'Apparatus' },
+  { path: '/join',         place: '進学・配属',  placeEn: 'Join us',      label: '進学・配属',  en: 'Join us' },
+  { path: '/access',       place: 'アクセス',    placeEn: 'Access',       label: 'アクセス',    en: 'Access' },
 ];
 
 /** 文章ページの URL（BASE_URL 込み）から、その場所を引く。/research/xxx のような下位ページも親に合わせる。 */

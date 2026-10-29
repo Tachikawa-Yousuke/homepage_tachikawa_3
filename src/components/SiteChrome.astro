@@ -3,7 +3,7 @@
 import site from '../data/site.json';
 import { withBase } from '../lib/url';
 import { PLACES } from '../lib/town';
-const nav = PLACES.map((p) => ({ ...p, href: withBase(p.path) }));   // 町の場所名で並べる（src/lib/town.ts）
+const nav = PLACES.map((p) => ({ ...p, href: withBase(p.path) }));   // 項目は src/lib/town.ts
 const themes = [{ key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, { key: 'green', label: '緑' }, { key: 'black', label: '黒' }];
 const seasons = [{ key: 'spring', label: '春' }, { key: 'summer', label: '夏' }, { key: 'autumn', label: '秋' }, { key: 'winter', label: '冬' }];
 ---
@@ -17,7 +17,7 @@ const seasons = [{ key: 'spring', label: '春' }, { key: 'summer', label: '夏' 
     <button class="drawer-close" id="drawer-close" type="button" aria-label="メニューを閉じる">×</button>
   </div>
   <ul>
-    {nav.map((n) => <li><a href={n.href}><span class="en">{n.placeEn} · {n.en}</span><span class="row">{n.place}<small>{n.label}</small></span></a></li>)}
+    {nav.map((n) => <li><a href={n.href}><span class="en">{n.en}</span>{n.label}</a></li>)}
   </ul>
   <div class="drawer-weather">
     <span class="en">Weather · 町の天気</span>

@@ -307,3 +307,6 @@ body.intro .weather { opacity: 0; pointer-events: none; }
 .weather .season-btn { width: 32px; height: 28px; font-size: 12px; background: var(--panel); backdrop-filter: blur(8px); }
 .weather .season-btn.on { background: var(--text); color: var(--bg); }
 .weather .sep { width: 1px; height: 22px; background: var(--line); }
+
+/* ---- 装置・設備などのカード写真（正方形に切り抜いて上に置く） ---- */
+.card img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 12px; margin-bottom: 12px; background: var(--panel); }

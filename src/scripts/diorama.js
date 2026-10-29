@@ -391,31 +391,62 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   const SMALL_TREES = [[-14, -9], [11, -25], [-19, -1], [24, 4], [13, 17], [2, 23], [-12, 23], [-20, -28], [0, -27], [31, -13], [-29, 12], [31, -30], [14, -29], [6, -28]];   // 建物・コース・ボールの通り道と重ならない位置（scripts/check-town-layout.mjs で確認）
   function buildSmallTrees() { smallTreesHolder.clear(); smallTreesHolder.add(makeVoxels(SMALL_TREES.flatMap(([x, z]) => tree(t, x, z, 1, season)), 1)); }
 
-  // ---- 看板「Welcome to M2D TOWN」（土台の手前左の角、正面向き）。ページを開いた直後はここに寄っている ----
-  const SIGN = { x: -26, z: 29.5, w: 10, h: 5, y0: 3.5 };            // 板の幅・高さ・下端の高さ。中心は (x, y0 + h/2, z)
-  const signCanvas = document.createElement('canvas'); signCanvas.width = 1024; signCanvas.height = 512;
-  const signTex = new THREE.CanvasTexture(signCanvas); signTex.colorSpace = THREE.SRGBColorSpace; signTex.anisotropy = 4;
-  function drawSign() {
-    const c = signCanvas.getContext('2d'), W = signCanvas.width, H = signCanvas.height;
-    const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+  // ---- 看板「WELCOME TO / M2D TOWN」（土台の手前左、正面向き、一本の柱）。イントロでは 文字 → 板 → 柱 の順に現れる ----
+  const SIGN = { x: -26.5, z: 29, w: 10, h: 5, y0: 3.5 };            // 板の幅・高さ・下端の高さ。中心は (x, y0 + h/2, z)
+  const WALK = { z: SIGN.z + 6.5, x0: SIGN.x - 12.5, x1: SIGN.x + 9.5, speed: 3.6 };   // イントロで腰痛人形が歩く線（土台の外の床）: 開始 x、停止 x、速さ
+  const signState = { letters: 1, board: 1, post: 1 };            // それぞれ 0〜1。イントロの間だけ 1 未満になる
+  const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+  const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const boardCanvas = mkCanvas(1024, 512), letterCanvas = mkCanvas(1024, 512);
+  const boardTex = new THREE.CanvasTexture(boardCanvas), letterTex = new THREE.CanvasTexture(letterCanvas);
+  for (const tx of [boardTex, letterTex]) { tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 4; }
+  const signFont = (wgt, px) => `${wgt} ${px}px "Noto Sans JP", "Helvetica Neue", Arial, sans-serif`;
+  function drawBoard() {                                           // 白い板と縁取り（文字は別の面）
+    const c = boardCanvas.getContext('2d'), W = boardCanvas.width, H = boardCanvas.height;
     c.fillStyle = hex(t.sign); c.fillRect(0, 0, W, H);
-    c.strokeStyle = hex(t.letter); c.lineWidth = 14; c.strokeRect(28, 28, W - 56, H - 56);   // 縁取り
-    c.fillStyle = hex(t.letter); c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = '700 54px "Noto Sans JP", "Helvetica Neue", Arial, sans-serif'; c.fillText('W E L C O M E   T O', W / 2, 150);
-    c.font = '900 200px "Noto Sans JP", "Helvetica Neue", Arial, sans-serif'; c.fillText('M2D TOWN', W / 2, 322);
-    signTex.needsUpdate = true;
+    c.strokeStyle = hex(t.letter); c.lineWidth = 14; c.strokeRect(30, 30, W - 60, H - 60);
+    boardTex.needsUpdate = true;
   }
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawSign);   // Web フォントが届いたら描き直す
-  addThemed((th) => {
-    drawSign();
-    const wood = new THREE.MeshLambertMaterial({ color: th.trunk });
-    const face = new THREE.MeshLambertMaterial({ map: signTex });
-    const board = new THREE.Mesh(new THREE.BoxGeometry(SIGN.w, SIGN.h, 0.6), [wood, wood, wood, wood, face, wood]);   // +z 面だけ文字
-    board.position.set(SIGN.x, SIGN.y0 + SIGN.h / 2, SIGN.z); board.castShadow = true; board.receiveShadow = true;
-    const posts = [];
-    for (let y = 0; y < SIGN.y0 + 1; y++) for (const dx of [-SIGN.w / 2 + 1, SIGN.w / 2 - 1]) posts.push({ x: SIGN.x + dx, y: y + 0.5, z: SIGN.z, c: th.trunk });
-    return [board, makeVoxels(posts, 1)];
-  });
+  let lettersDrawn = -1;
+  function drawLetters(reveal = signState.letters) {               // 文字だけ（背景は透明）。reveal: 左から何割まで見せるか
+    if (reveal === lettersDrawn) return; lettersDrawn = reveal;
+    const c = letterCanvas.getContext('2d'), W = letterCanvas.width, H = letterCanvas.height;
+    c.clearRect(0, 0, W, H);
+    c.save(); c.beginPath(); c.rect(0, 0, W * reveal, H); c.clip();
+    c.fillStyle = hex(t.letter); c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = signFont(700, 50); c.fillText('W E L C O M E   T O', W / 2, 140);
+    let px = 190; c.font = signFont(900, px);
+    const maxW = W - 2 * 110, mw = c.measureText('M2D TOWN').width;
+    if (mw > maxW) { px = Math.floor(px * maxW / mw); c.font = signFont(900, px); }   // 縁取りの内側に収まる大きさに縮める
+    c.fillText('M2D TOWN', W / 2, 318);
+    c.restore(); letterTex.needsUpdate = true;
+  }
+  const signGroup = new THREE.Group(); world.add(signGroup);
+  const postGroup = new THREE.Group(); signGroup.add(postGroup);
+  const letterMat = new THREE.MeshLambertMaterial({ map: letterTex, transparent: true, alphaTest: 0.02 });
+  let boardMesh = null, boardMats = [];
+  function buildSign() {                                           // テーマが変わるたびに作り直す（applyTheme から呼ぶ）
+    if (boardMesh) signGroup.remove(boardMesh, boardMesh.letters); postGroup.clear();
+    drawBoard(); lettersDrawn = -1;
+    const wood = new THREE.MeshLambertMaterial({ color: t.trunk, transparent: true });
+    const face = new THREE.MeshLambertMaterial({ map: boardTex, transparent: true });
+    boardMats = [wood, face];
+    boardMesh = new THREE.Mesh(new THREE.BoxGeometry(SIGN.w, SIGN.h, 0.6), [wood, wood, wood, wood, face, wood]);   // +z 面だけ板の絵
+    boardMesh.position.set(SIGN.x, SIGN.y0 + SIGN.h / 2, SIGN.z); boardMesh.receiveShadow = true; signGroup.add(boardMesh);
+    const letters = new THREE.Mesh(new THREE.PlaneGeometry(SIGN.w, SIGN.h), letterMat);
+    letters.position.set(SIGN.x, SIGN.y0 + SIGN.h / 2, SIGN.z + 0.36); signGroup.add(letters); boardMesh.letters = letters;
+    const post = []; for (let y = 0; y < SIGN.y0 + 1; y++) post.push({ x: SIGN.x, y: y + 0.5, z: SIGN.z, c: t.trunk });
+    postGroup.add(makeVoxels(post, 1));
+    applySignState();
+  }
+  function applySignState() {
+    if (!boardMesh) return;
+    boardMats.forEach((m) => { m.opacity = signState.board; });
+    boardMesh.visible = signState.board > 0.01; boardMesh.castShadow = signState.board > 0.5;
+    postGroup.scale.y = Math.max(0.001, signState.post); postGroup.visible = signState.post > 0.01;
+    drawLetters(signState.letters);
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { lettersDrawn = -1; drawLetters(); });   // Web フォントが届いたら描き直す
 
   // ---- 登場人物 6 人（統一デザイン）。動きは frame() で付ける ----
   const chars = {};
@@ -444,7 +475,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   const batMesh = bat(6, 0xc9a06a); batMesh.rotation.y = 0.8; batter.armR.add(batMesh);   // バット（右手に付け、左手も同じ位置に寄せて両手持ちに見せる。肩の斜め上に構える）
   const climber = place('climber', 0, 0, 0, 'kaneko');             // 木登り（幹に張り付く）
   const runner = place('runner', 15.5, 0, 0, 'kuboya');            // 校庭（環状の道）をマラソン
-  place('backpain', -41, 22, -0.8, 'kimura', PAGE_Y);              // 腰が痛そうな人（土台の外、手前左）
+  place('backpain', WALK.x1, WALK.z, Math.PI / 2, 'kimura', PAGE_Y);   // 腰が痛そうな人（看板の前、土台の外の床。イントロでここまで歩いて来て止まる）
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), new THREE.MeshLambertMaterial({ color: 0xffffff })); ball.castShadow = true; world.add(ball);
 
   // ---- 塔の周りを飛ぶ飛行機 ----
@@ -493,15 +524,17 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   let orbit = 0;                                          // 観測者（カメラ）が模型の周りを回る角度。模型自体は回さない
   // ---- カメラの「寄り」: 基本のタウンビュー枠と、寄り先（看板 or 目印）の枠を重み w で混ぜる ----
   // 寄り先の枠 = { target: 注視点, dist: 距離, elev: 見下ろし tan, film: 画面上の横ずらし（film 幅比） }
-  const INTRO_HOLD = 1.2, INTRO_DUR = 2.6;               // 看板に留まる秒数と、引いていく秒数
-  let introOn = intro && !prefersReduced;                 // 看板から引く演出の最中か
+  // イントロの時間割（秒）: 歩き（文字が現れる）→ 板が現れる → 柱が伸びる → 少し置いて引く
+  const T_WALK = (WALK.x1 - WALK.x0) / WALK.speed, T_BOARD = T_WALK + 0.5, T_POST = T_BOARD + 0.6, T_PULL = T_POST + 0.9, PULL_DUR = 2.6;
+  let introOn = intro && !prefersReduced;                 // 看板イントロの最中か
+  if (introOn) Object.assign(signState, { letters: 0, board: 0, post: 0 });
   let focusKey = null, focusFrom = null;                  // 寄っている目印のキー、寄り先の枠（離れる途中も保持）
   let focusW = 0, focusTween = null;                      // 目印への寄りの重み（0〜1）と、その補間 { from, to, t0, dur }
   const easeIO = (x) => (x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2);
   const hotspotWorld = (key, out) => { const pos = HOTSPOTS[key]; if (!pos) return null; if (pos[3]) out.set(pos[0] * bigTree.scale.x, pos[1] * bigTree.scale.y, pos[2] * bigTree.scale.z); else out.set(pos[0], pos[1], pos[2]); return world.localToWorld(out); };
   // 目印に寄る / 離れる（null）。板（メッセージ・場所）を開くときに index.astro から呼ぶ
   function focus(key) {
-    introOn = false;                                      // 演出の途中なら打ち切る
+    if (introOn) { introOn = false; Object.assign(signState, { letters: 1, board: 1, post: 1 }); applySignState(); }   // 演出の途中なら打ち切る
     const now = timer.getElapsed();
     if (key && HOTSPOTS[key]) {
       const tgt = hotspotWorld(key, new THREE.Vector3());
@@ -570,7 +603,19 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     bp.torso.rotation.x = strain; bp.head.rotation.x = strain - 0.2;
     bp.armR.rotation.x = Math.PI * 0.7; bp.armR.rotation.z = -0.5;      // 右手を腰の後ろへ
     bp.armL.rotation.x = strain * 0.6;                                   // 左手は膝の方へ
-    bp.g.position.y = GROUND_Y - strain * 0.25;
+    // イントロ: 看板の前を左から右へのろのろ歩き、通り過ぎた所から文字が現れる。止まった後は板・柱が現れる
+    const walking = introOn && time < T_WALK;
+    if (walking) {
+      bp.g.position.x = WALK.x0 + WALK.speed * time; swingLeg(bp, time * 4.5, 0.35);
+      bp.g.position.y = PAGE_Y + Math.abs(Math.sin(time * 4.5)) * 0.1;
+      signState.letters = Math.max(0, Math.min(1, (bp.g.position.x - 0.8 - (SIGN.x - SIGN.w / 2)) / SIGN.w));
+    } else { bp.g.position.x = WALK.x1; swingLeg(bp, 0, 0); bp.g.position.y = PAGE_Y; }
+    if (introOn) {
+      signState.letters = walking ? signState.letters : 1;
+      signState.board = Math.max(0, Math.min(1, (time - T_BOARD) / 0.8));
+      signState.post = Math.max(0, Math.min(1, (time - T_POST) / 0.6));
+      applySignState();
+    }
     // 飛行機: 塔の周りを旋回しつつ上下にうねる
     const pa = time * 0.5, pr = 20;
     plane.position.set(Math.cos(pa) * pr, 26 + Math.sin(time * 0.9) * 4, Math.sin(pa) * pr);
@@ -587,7 +632,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     // 最上部（ヒーロー）: 右半分に収まる距離。タウンビュー: 画面を大きく使い、やや右寄せで少しはみ出す
     // エントランスビュー: 右寄りだが大きめで、左の文章領域に少しかかる。タウンビュー: 画面を大きく使い、やや右寄せ
     const dHero = Math.max(dVert, dHoriz(wide ? 0.60 : 1)) * (wide ? 0.95 : 1);   // エントランス: 画面右側（幅 60%）に大きく
-    const dTown = Math.max(dVert, dHoriz(wide ? 0.76 : 1)) * 1.0;   // 右寄せ（中心 61%）でも右端の人形まで見切れない大きさ
+    const dTown = Math.max(dVert, dHoriz(wide ? 0.76 : 1)) * 0.88;  // 2026-10-29: 少し画面からはみ出すくらい大きく（ユーザー要望）
     const d = dHero + (dTown - dHero) * pe;
     const fw = camera.getFilmWidth();
     // 横ずらし（film0）: エントランスでは中心を画面幅の約 73% に、タウンビューでは 61% に置く（寄りの混合後に下で設定）
@@ -597,10 +642,10 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     // 寄りの重み: 看板イントロ（1 → 0）か、目印への寄り（0 → 1 → 0）
     let cw = 0, ov = null;
     if (introOn) {
-      const u = (time - INTRO_HOLD) / INTRO_DUR;
-      cw = u <= 0 ? 1 : 1 - easeIO(Math.min(1, u)); if (u >= 1) introOn = false;
+      const u = (time - T_PULL) / PULL_DUR;
+      cw = u <= 0 ? 1 : 1 - easeIO(Math.min(1, u)); if (u >= 1) { introOn = false; Object.assign(signState, { letters: 1, board: 1, post: 1 }); applySignState(); }
       const tanH = tanV * camera.aspect;
-      ov = { target: new THREE.Vector3(SIGN.x, SIGN.y0 + SIGN.h / 2 + 0.5, SIGN.z), dist: Math.max(14, SIGN.w / 2 / (tanH * 0.52)), elev: 0.12, film: 0 };   // 看板が画面幅の約 52% に収まる距離、ほぼ正面
+      ov = { target: new THREE.Vector3(SIGN.x + 1.5, 3.8, SIGN.z + 3), dist: Math.max(16, 12 / tanH), elev: 0.22, film: 0 };   // 正面やや上から。画面の横幅が約 24 単位（看板 10 ＋ 歩く余白）
     } else if (focusTween || focusW > 0) {
       if (focusTween) { const u = Math.min(1, (time - focusTween.t0) / focusTween.dur); focusW = focusTween.from + (focusTween.to - focusTween.from) * easeIO(u); if (u >= 1) focusTween = null; }
       cw = focusW; ov = focusFrom && { ...focusFrom, dist: dTown * focusFrom.distF };
@@ -615,7 +660,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     world.position.set(0, wide ? 0 : -20 * (1 - pe), 0);
     // 自転: ヒーローではやや速く、タウンビューではゆっくり。ドラッグ中は止め、離すと惰性のあと再開
     if (!dragging) {
-      const spin = prefersReduced ? 0 : (prog < 0.5 ? 0.10 : 0.07) * (introOn ? 0.5 : 1);   // ゆっくり（約 90 秒 / 周）。看板に寄っている間はさらに半分
+      const spin = prefersReduced ? 0 : (prog < 0.5 ? 0.10 : 0.07) * (introOn ? (time < T_PULL ? 0 : 0.5) : 1);   // ゆっくり（約 90 秒 / 周）。看板の場面では止め、引く間は半分
       orbit -= dt * spin + dragVel; dragVel *= 0.92;
     }
     const town = prog > 0.55;
@@ -663,7 +708,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     t = THEMES[name] || THEMES.yellow;
     scene.background = new THREE.Color(t.bg); scene.fog = new THREE.Fog(t.bg, 420, 760);   // カメラ距離が 250 前後まで伸びたので、霧は遠くに（近いと模型と影が背景色に溶けて薄くなる）
     hemi.color.set(t.hemiSky); hemi.groundColor.set(t.hemiGround); hemi.intensity = t.hemiI; sun.color.set(t.sun); sun.intensity = t.sunI;
-    edge.material.color.set(t.base); buildGround(); buildSmallTrees();
+    edge.material.color.set(t.base); buildGround(); buildSmallTrees(); buildSign();
     for (const th of themed) { th.holder.clear(); th.fn(t).forEach((m) => th.holder.add(m)); }
     plane.clear(); plane.add(makeVoxels(planeVox.map((p) => ({ ...p, c: p.k === 'nose' ? 0x303030 : p.k === 'accent' ? t.planeAccent : t.plane })), 0.7));
   }

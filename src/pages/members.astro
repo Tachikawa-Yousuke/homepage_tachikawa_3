@@ -15,7 +15,6 @@ const groups = [
 const alumni = all.filter((m) => m.data.group === 'alumni');
 ---
 <Base title="メンバー" en="Members">
-  <p class="members-lead">カードにカーソルを載せる（スマートフォンでは押す）と名刺が裏返ります。{site.foundedText}の研究室で、メンバーを募集しています。</p>
 
   {groups.map((g) => {
     const list = all.filter((m) => m.data.group === g.key);

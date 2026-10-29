@@ -56,6 +56,8 @@ const themes = [
     <ClientRouter />
   </head>
   <body>
+    <!-- 看板イントロを出すときは、最初の描画から名称・見出しを隠しておく（diorama.js が終了時に外す。JS 無効時はこのスクリプトも走らないので表示される） -->
+    <script is:inline>try { if (!location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.body.classList.add('intro'); } catch (e) {}</script>
     <canvas id="diorama" data-base={import.meta.env.BASE_URL} aria-label="大きな一本の木を中心にした町の 3D 模型"></canvas>
     <noscript><div class="nojs"><p>3D 模型の表示には JavaScript が必要です。</p></div></noscript>
     <svg class="leader" id="leader" aria-hidden="true"><path d="" /></svg>
@@ -118,7 +120,7 @@ const themes = [
         let sv = null; try { sv = localStorage.getItem('m2d-season'); } catch (e) {}
         const intro = !location.hash && !window.__m2dSwapped;   // 直接開いたときだけ、看板に寄った状態から引く
         try { d = createDiorama(canvas, { themeName: current(), seasonName: SEASONS.includes(sv) ? sv : undefined, base: canvas.dataset.base || '/', intro }); window.__d = d; }
-        catch (e) { console.warn('WebGL を初期化できません', e); canvas.style.display = 'none'; }
+        catch (e) { console.warn('WebGL を初期化できません', e); canvas.style.display = 'none'; document.body.classList.remove('intro'); }
       }
       document.addEventListener('m2d:theme', (e) => { if (d) d.applyTheme(e.detail); });
       document.addEventListener('m2d:season', (e) => { if (d) d.applySeason(e.detail); });

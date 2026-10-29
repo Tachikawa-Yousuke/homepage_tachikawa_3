@@ -421,22 +421,24 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     c.fillText('M2D TOWN', W / 2, 318);
     c.restore(); letterTex.needsUpdate = true;
   }
-  const signGroup = new THREE.Group(); world.add(signGroup);
-  const postGroup = new THREE.Group(); signGroup.add(postGroup);
+  // 看板と腰痛人形は world ではなく scene に置く（イントロで町を消したり縮めたりしても残すため。world は原点にあるので座標は同じ）
+  const signGroup = new THREE.Group(); scene.add(signGroup);
+  const postGroup = new THREE.Group(); signGroup.add(postGroup);         // 柱（下から伸びる: scale.y）
+  const boardGroup = new THREE.Group(); signGroup.add(boardGroup);       // 板＋文字（柱が伸びるのに合わせて持ち上がる: position.y）
   const letterMat = new THREE.MeshLambertMaterial({ map: letterTex, transparent: true, alphaTest: 0.02 });
   let boardMesh = null, boardMats = [];
   function buildSign() {                                           // テーマが変わるたびに作り直す（applyTheme から呼ぶ）
-    if (boardMesh) signGroup.remove(boardMesh, boardMesh.letters); postGroup.clear();
+    boardGroup.clear(); postGroup.clear();
     drawBoard(); lettersDrawn = -1;
     const wood = new THREE.MeshLambertMaterial({ color: t.trunk, transparent: true });
     const face = new THREE.MeshLambertMaterial({ map: boardTex, transparent: true });
     boardMats = [wood, face];
     boardMesh = new THREE.Mesh(new THREE.BoxGeometry(SIGN.w, SIGN.h, 0.6), [wood, wood, wood, wood, face, wood]);   // +z 面だけ板の絵
-    boardMesh.position.set(SIGN.x, SIGN.y0 + SIGN.h / 2, SIGN.z); boardMesh.receiveShadow = true; signGroup.add(boardMesh);
+    boardMesh.position.set(SIGN.x, SIGN.y0 + SIGN.h / 2, SIGN.z); boardMesh.receiveShadow = true; boardGroup.add(boardMesh);
     const letters = new THREE.Mesh(new THREE.PlaneGeometry(SIGN.w, SIGN.h), letterMat);
-    letters.position.set(SIGN.x, SIGN.y0 + SIGN.h / 2, SIGN.z + 0.36); signGroup.add(letters); boardMesh.letters = letters;
-    const post = []; for (let y = 0; y < SIGN.y0 + 1; y++) post.push({ x: SIGN.x, y: y + 0.5, z: SIGN.z, c: t.trunk });
-    postGroup.add(makeVoxels(post, 1));
+    letters.position.set(SIGN.x, SIGN.y0 + SIGN.h / 2, SIGN.z + 0.36); boardGroup.add(letters);
+    const post = new THREE.Mesh(new THREE.BoxGeometry(1, SIGN.y0, 1), new THREE.MeshLambertMaterial({ color: t.trunk }));   // 高さは板の下端ぴったり（板に食い込まない）
+    post.position.set(SIGN.x, SIGN.y0 / 2, SIGN.z); post.castShadow = true; postGroup.add(post);
     applySignState();
   }
   function applySignState() {
@@ -444,6 +446,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     boardMats.forEach((m) => { m.opacity = signState.board; });
     boardMesh.visible = signState.board > 0.01; boardMesh.castShadow = signState.board > 0.5;
     postGroup.scale.y = Math.max(0.001, signState.post); postGroup.visible = signState.post > 0.01;
+    boardGroup.position.y = -SIGN.y0 * (1 - signState.post);           // 柱が伸びるのに合わせて板が床から持ち上がる（板の下端 = 柱の上端）
     drawLetters(signState.letters);
   }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { lettersDrawn = -1; drawLetters(); });   // Web フォントが届いたら描き直す
@@ -476,6 +479,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
   const climber = place('climber', 0, 0, 0, 'kaneko');             // 木登り（幹に張り付く）
   const runner = place('runner', 15.5, 0, 0, 'kuboya');            // 校庭（環状の道）をマラソン
   place('backpain', WALK.x1, WALK.z, Math.PI / 2, 'kimura', PAGE_Y);   // 腰が痛そうな人（看板の前、土台の外の床。イントロでここまで歩いて来て止まる）
+  scene.add(chars.backpain.g);                                           // イントロで町（world）を消している間も見せるので scene 直下へ
   const ball = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), new THREE.MeshLambertMaterial({ color: 0xffffff })); ball.castShadow = true; world.add(ball);
 
   // ---- 塔の周りを飛ぶ飛行機 ----
@@ -595,7 +599,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     runner.g.position.set(rx, (onPlate ? GROUND_Y : PAGE_Y) + Math.abs(Math.sin(time * 9)) * 0.25, rz);
     runner.g.rotation.y = Math.atan2(-Math.sin(ra) * RX, Math.cos(ra) * RZ);                 // 進行方向（接線）を向く
     const runnerOut = rx < -(N + 1);                                                         // 左側で土台の外に出た瞬間（上へ）と戻った瞬間（下へ）に足跡
-    if (runnerOut !== runnerWasOut && time > 2) spawnTrail(runnerOut ? 1 : -1);
+    if (runnerOut !== runnerWasOut && time > 2 && !introOn) spawnTrail(runnerOut ? 1 : -1);
     runnerWasOut = runnerOut;
     swingLeg(runner, time * 9, 0.8); runner.armL.rotation.x = Math.sin(time * 9 + Math.PI) * 0.9 - 0.4; runner.armR.rotation.x = Math.sin(time * 9) * 0.9 - 0.4;
     // 腰が痛そうな人: 前かがみで腰に手を当て、ときどき伸ばそうとして戻る
@@ -644,12 +648,15 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     if (introOn) {
       const u = (time - T_PULL) / PULL_DUR;
       cw = u <= 0 ? 1 : 1 - easeIO(Math.min(1, u)); if (u >= 1) { introOn = false; Object.assign(signState, { letters: 1, board: 1, post: 1 }); applySignState(); }
+      // 町は、人形が歩いて看板ができるまでは出さず、引き始めると中心から育つように現れる
+      world.visible = u > 0; const g = Math.max(0, Math.min(1, u)); world.scale.setScalar(0.001 + 0.999 * (1 - Math.pow(1 - g, 3)));
       const tanH = tanV * camera.aspect;
-      ov = { target: new THREE.Vector3(SIGN.x + 1.5, 3.8, SIGN.z + 3), dist: Math.max(16, 12 / tanH), elev: 0.22, film: 0 };   // 正面やや上から。画面の横幅が約 24 単位（看板 10 ＋ 歩く余白）
+      ov = { target: new THREE.Vector3(SIGN.x + 1.5, 1.9, SIGN.z + 3), dist: Math.max(16, 12 / tanH), elev: 0.05, film: 0 };   // ほぼ真横（目線は人形の胸の高さ）。画面の横幅が約 24 単位（看板 10 ＋ 歩く余白）
     } else if (focusTween || focusW > 0) {
       if (focusTween) { const u = Math.min(1, (time - focusTween.t0) / focusTween.dur); focusW = focusTween.from + (focusTween.to - focusTween.from) * easeIO(u); if (u >= 1) focusTween = null; }
       cw = focusW; ov = focusFrom && { ...focusFrom, dist: dTown * focusFrom.distF };
     }
+    if (!introOn && (!world.visible || world.scale.x !== 1)) { world.visible = true; world.scale.setScalar(1); }   // イントロ終了・中断後は必ず元に戻す
     if (!lite) document.body.classList.toggle('intro', introOn);
     const b0 = { x: ocx, y: CENTER_Y, z: 0 };
     const film0 = lite ? -0.30 : wide ? -(0.23 * (1 - pe) + 0.11 * pe) : 0;   // 文章ページの背景では右に寄せ、本文の脇から町が覗くようにする

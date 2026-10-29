@@ -23,7 +23,7 @@ const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURICom
 // 模型上の目印（位置は diorama.js の HOTSPOTS と対応）
 const spots = [
   { key: 'message', en: 'Message', label: 'メッセージ', href: '#message', desc: '研究室からのメッセージ。「誰もが簡単に、小さなモノづくりを。」目指していること、取り組み、問い合わせ先。' },
-  { key: 'news', en: 'News', label: 'お知らせ', href: withBase('/news'), desc: '研究室からのお知らせ。見学会、学会発表、取材、新メンバーなど。全件はこちら。' },
+  { key: 'news', en: 'News', label: 'お知らせ', href: withBase('/news'), desc: '研究室からのお知らせ。直近の 5 件（全件は目印をクリック）。' },
   { key: 'about', en: 'About', label: '研究室概要', href: withBase('/about'), desc: site.foundedText + '。固体中の原子拡散を駆使した、原子・ナノスケールのモノづくりに挑む研究室です。' },
   { key: 'research', en: 'Research', label: '研究テーマ', href: withBase('/research'), desc: research.length + ' つのテーマ。ナノワイヤ創製、Nano Additive Manufacturing、電子と欠陥、結晶組織デザイン。' },
   { key: 'members', en: 'Members', label: 'メンバー', href: withBase('/members'), desc: '教員・学生 ' + members.filter((m) => m.data.group !== 'alumni').length + ' 名の小さな研究室。メンバーを募集しています。' },
@@ -102,15 +102,6 @@ const themes = [
           <p class="org">Department of Mechanical Engineering, Kyushu University</p>
         </div>
         <div class="town-title" aria-hidden="true"><span class="en">Town view</span>M2D<br />TOWN</div>
-        <!-- お知らせ（直近 5 件）: 見出しの下に常に表示。見出しをクリックすると全件の板が開く -->
-        {news.length > 0 && (
-          <nav class="town-news" aria-label="お知らせ（直近）">
-            <a class="town-news-head" href={withBase('/news')} data-spot-link="news"><span class="en">News</span>お知らせ<small>すべて見る ▶</small></a>
-            <ul>
-              {news.map((n) => <li><time datetime={isoDate(n.data.date)}>{fmtDate(n.data.date)}</time><span>{n.data.title}</span></li>)}
-            </ul>
-          </nav>
-        )}
         <!-- 町の天気（季節・空の色）。ボタンの処理は SiteChrome の共通スクリプト（.season-btn / .theme-dot） -->
         <div class="weather" role="group" aria-label="町の天気">
           <span class="en">Weather · 町の天気</span>
@@ -125,7 +116,14 @@ const themes = [
           </div>
         </div>
         <div class="spot-panel" aria-live="polite">
-          {spots.map((sp) => <div class="spot-info" data-for={sp.key}><span class="en">{sp.en}</span><h3>{sp.label}</h3><p>{sp.desc}</p></div>)}
+          {spots.map((sp) => (
+            <div class="spot-info" data-for={sp.key}>
+              <span class="en">{sp.en}</span><h3>{sp.label}</h3><p>{sp.desc}</p>
+              {sp.key === 'news' && news.length > 0 && (
+                <ul class="spot-news">{news.map((n) => <li><time datetime={isoDate(n.data.date)}>{fmtDate(n.data.date)}</time><span>{n.data.title}</span></li>)}</ul>
+              )}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -211,6 +209,14 @@ const themes = [
         addEventListener('hashchange', () => openSpot(spotFromHash()));
         document.addEventListener('astro:page-load', () => { const k = spotFromHash(); if (k) openSpot(k); });
       }
+      // 最初のタウンビューでは「お知らせ」の目印にカーソルが載っている状態にしておく（説明＋直近 5 件を表示）。看板イントロの後に出す
+      function showDefaultSpot() {
+        if (document.body.classList.contains('intro') || document.querySelector('.spot-info.on')) return;
+        document.querySelector('.marker[data-spot="news"]')?.classList.add('hover');
+        document.querySelector('.spot-info[data-for="news"]')?.classList.add('on');
+      }
+      if (!window.__m2dIntroWatch) { window.__m2dIntroWatch = new MutationObserver(showDefaultSpot); window.__m2dIntroWatch.observe(document.body, { attributes: true, attributeFilter: ['class'] }); }
+      document.addEventListener('astro:page-load', showDefaultSpot); showDefaultSpot();
       document.addEventListener('astro:before-swap', () => { if (d) { d.dispose(); d = null; } if (fx) { fx.dispose(); fx = null; } openKey = null; });
       document.addEventListener('astro:after-swap', () => { window.__m2dSwapped = true; });   // サイト内の移動で来たときは看板イントロを出さない
       document.addEventListener('astro:page-load', init);

@@ -44,9 +44,9 @@ a { color: inherit; text-decoration: none; }
 
 /* 模型が中央に来る場面（1 画面分の余白） */
 .model-stage { min-height: 100vh; position: relative; }
-.town-title { position: fixed; left: clamp(20px, 6vw, 96px); top: 20%; transform: none; font-size: clamp(56px, 9vw, 150px); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; color: var(--text); opacity: 0; transition: opacity .6s, transform .6s; pointer-events: none; z-index: 1; }
+.town-title { position: fixed; left: clamp(20px, 6vw, 96px); top: 34%; transform: translateY(-50%); font-size: clamp(56px, 9vw, 150px); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; color: var(--text); opacity: 0; transition: opacity .6s, transform .6s; pointer-events: none; z-index: 1; }
 .town-title .en { display: block; font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--accent2); margin-bottom: 14px; font-weight: 700; }
-.town-view .town-title { opacity: 1; transform: none; }
+.town-view .town-title { opacity: 1; transform: translateY(-50%) translateX(0); }
 @media (max-width: 900px) { .town-title { top: 16%; font-size: clamp(44px, 14vw, 80px); } }
 /* タウンビュー左上の名称 4 行 */
 .town-name { position: fixed; left: clamp(20px, 6vw, 96px); top: 22px; z-index: 1; pointer-events: none; }
@@ -67,9 +67,9 @@ a { color: inherit; text-decoration: none; }
 .msg-close { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); background: transparent; color: var(--text); font-size: 24px; cursor: pointer; }
 @media (max-width: 900px) { .msg-panel { width: 100vw; } }
 /* 目印にカーソルを合わせた時の説明（M2D TOWN の下）と、目印からの点線 */
-.spot-panel { position: fixed; left: clamp(20px, 6vw, 96px); top: 58%; width: min(420px, 40vw); z-index: 1; pointer-events: none; }
+.spot-panel { position: fixed; left: clamp(20px, 6vw, 96px); top: 54%; width: min(420px, 40vw); z-index: 1; pointer-events: none; }
 .spot-info { position: absolute; left: 0; top: 0; width: 100%; opacity: 0; transform: translateY(8px); transition: opacity .25s, transform .25s; }
-.town-view .spot-info.on { opacity: 1; transform: none; }
+.town-view .spot-info.on { opacity: 1; transform: none; pointer-events: auto; }   /* お知らせの一覧などを押せるように */
 .spot-info .en { display: block; font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--accent2); font-weight: 700; margin-bottom: 6px; }
 .spot-info .en::before { content: "› "; }
 .spot-info h3 { margin: 0 0 10px; font-size: clamp(30px, 4vw, 54px); font-weight: 900; line-height: 1.15; padding-bottom: 10px; border-bottom: 3px solid var(--text); display: inline-block; }
@@ -317,20 +317,6 @@ body.intro .weather { opacity: 0; pointer-events: none; }
 .place-panel .member-group { margin-bottom: 28px; }
 .place-panel .bio, .place-panel .members-contact, .place-panel .member-group:has(.alumni-list) { display: none; }   /* 板の中は名刺だけ（文章・卒業生の一覧は出さない） */
 
-/* ---- タウンビューの見出しの下: お知らせ（直近 5 件）。見出しの高さ（ラベル ≈ 58px ＋ 2 行 × 0.95 × 文字サイズ）の下に置く ---- */
-.town-news { position: fixed; left: clamp(20px, 6vw, 96px); top: calc(20% + 58px + 1.9 * clamp(56px, 9vw, 150px)); z-index: 1; width: min(440px, 34vw); opacity: 0; transition: opacity .6s; }
-.town-view .town-news { opacity: 1; }
-body.intro .town-news { opacity: 0; }
-.town-news-head { display: flex; align-items: baseline; gap: 10px; font-weight: 900; font-size: 18px; color: var(--text); text-decoration: none; margin-bottom: 10px; }
-.town-news-head .en { font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--accent2); font-weight: 700; }
-.town-news-head small { font-size: 12px; font-weight: 700; color: var(--muted); margin-left: auto; }
-.town-news-head:hover small { color: var(--accent2); }
-.town-news ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
-.town-news li { display: grid; grid-template-columns: 7.6em 1fr; gap: 12px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.6; }
-.town-news li:last-child { border-bottom: 1px solid var(--line); }
-.town-news time { font-weight: 700; color: var(--muted); font-size: 12px; letter-spacing: .02em; white-space: nowrap; }
-.town-news span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
 /* ---- お知らせ一覧（全件）: 日付が変わるごとに行の濃淡を切り替える ---- */
 .news-list { list-style: none; margin: 0; padding: 0; }
 .news-row { display: grid; grid-template-columns: 9em 1fr; gap: 18px; align-items: baseline; padding: 14px 16px; border-radius: 10px; }
@@ -340,3 +326,10 @@ body.intro .town-news { opacity: 0; }
 .news-text { margin-top: 6px; font-size: 14px; color: var(--muted); }
 .news-text p { margin: 0 0 .6em; }
 .place-panel .news-row { grid-template-columns: 8em 1fr; gap: 12px; padding: 12px; }
+
+/* ---- 目印「お知らせ」の説明の下: 直近 5 件 ---- */
+.spot-news { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; }
+.spot-news li { display: grid; grid-template-columns: 7.4em 1fr; gap: 10px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.6; color: var(--text); }
+.spot-news li:last-child { border-bottom: 1px solid var(--line); }
+.spot-news time { font-weight: 700; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.spot-news span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -20,10 +20,9 @@ const front = data.voxel ? img(data.voxel) : img('default-voxel.png');
     </div>
     <div class="face back">
       {hasPhoto && <img src={img(data.photo)} alt={data.name + 'の写真'} loading="lazy" style={data.photoPos ? '--pos: ' + data.photoPos : undefined} />}
-      <div class="meta">
-        <span class="role">{data.role}{data.roleEn && <span class="en"> / {data.roleEn}</span>}</span>
+      <div class="meta">   <!-- 裏面は写真を隠さないよう、肩書きと氏名だけ（2026-10-30 ユーザー要望） -->
+        <span class="role">{data.role}</span>
         <strong>{data.name}</strong>
-        {data.interests.length > 0 && <p class="keys">{data.interests.join('　')}</p>}
       </div>
     </div>
   </div>

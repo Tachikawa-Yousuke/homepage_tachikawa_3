@@ -313,5 +313,6 @@ body.intro .weather { opacity: 0; pointer-events: none; }
 
 /* ---- 場所の板の中のメンバー: 名刺を縦一列に、区分（教員・学生・技術職員）は見出しで分ける ---- */
 .place-panel .card-flip-grid { grid-template-columns: 240px; }
-.place-panel .faculty-row { grid-template-columns: 240px 1fr; gap: 20px; }
+.place-panel .faculty-row { grid-template-columns: 240px; }
 .place-panel .member-group { margin-bottom: 28px; }
+.place-panel .bio, .place-panel .members-contact, .place-panel .member-group:has(.alumni-list) { display: none; }   /* 板の中は名刺だけ（文章・卒業生の一覧は出さない） */

@@ -48,6 +48,12 @@ jobs:
           # 秘密情報が必要な場合はここに追加する（コードに直書きしない）
           # PUBLIC_MAP_API_KEY: ${{ secrets.PUBLIC_MAP_API_KEY }}
 
+      - name: Check links and images
+        # dist 内のリンク切れ・画像欠けを検査。1 つでもあれば失敗し、壊れた状態は公開されない
+        run: npm run check
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v3
         with:

@@ -292,3 +292,18 @@ body.intro .town-name, body.intro .town-title { opacity: 0; }
 /* ---- 文章ページの背景の町（薄く敷く）。本文は上に重ねる ---- */
 .town-bg { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; opacity: .34; pointer-events: none; }
 .subpage > .flip { position: relative; z-index: 1; }
+
+/* ---- タウンビューの季節の演出（全画面の 2D キャンバス。見出しや目印の下に敷く） ---- */
+.weather-fx { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; pointer-events: none; transition: opacity .8s; }
+body.intro .weather-fx { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .weather-fx { display: none; } }
+
+/* ---- 町の天気（タウンビュー右上）: 季節と空の色 ---- */
+.weather { position: fixed; top: 22px; right: clamp(20px, 6vw, 96px); z-index: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; transition: opacity .8s; }
+body.intro .weather { opacity: 0; pointer-events: none; }
+.weather .en { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent2); font-weight: 700; }
+.weather .row { display: flex; align-items: center; gap: 12px; }
+.weather .season-picker { gap: 4px; }
+.weather .season-btn { width: 32px; height: 28px; font-size: 12px; background: var(--panel); backdrop-filter: blur(8px); }
+.weather .season-btn.on { background: var(--text); color: var(--bg); }
+.weather .sep { width: 1px; height: 22px; background: var(--line); }

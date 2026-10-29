@@ -634,7 +634,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       // 文字は「画面上で人形が通り過ぎた所」から現れる: 人形の x をカメラから見て看板の面に投影する（人形は看板より手前なので倍率 k ≈ 1.3）
       const cz = camera.position.z, k = (cz - (SIGN.z + 0.36)) / (cz - WALK.z);
       const xProj = camera.position.x + (bp.g.position.x - camera.position.x) * k;
-      signState.letters = Math.max(0, Math.min(1, (xProj - 0.9 * k - (SIGN.x - SIGN.w / 2)) / SIGN.w));
+      signState.letters = Math.max(0, Math.min(1, (xProj + 0.4 * k - (SIGN.x - SIGN.w / 2)) / SIGN.w));   // 人形の中心より少し前まで見せる（体に隠れている内に現れる）
     } else { bp.g.position.x = WALK.x1; swingLeg(bp, 0, 0); bp.g.position.y = PAGE_Y; }
     if (introOn) {
       signState.letters = walking ? signState.letters : 1;

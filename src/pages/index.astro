@@ -61,6 +61,7 @@ const themes = [
     <canvas id="diorama" data-base={import.meta.env.BASE_URL} aria-label="大きな一本の木を中心にした町の 3D 模型"></canvas>
     <noscript><div class="nojs"><p>3D 模型の表示には JavaScript が必要です。</p></div></noscript>
     <svg class="leader" id="leader" aria-hidden="true"><path d="" /></svg>
+    <canvas id="weather-fx" class="weather-fx" aria-hidden="true"></canvas>   <!-- 画面全体の季節の演出（桜・紅葉・雪。夏は無し） -->
     <div id="trail" aria-hidden="true"></div>   <!-- ランニング人形が土台の外へ出ると、ここに足跡が下から上へ付いて消える -->
     <div id="markers" aria-label="模型上のリンク">
       {spots.map((sp) => <a class="marker" data-spot={sp.key} data-place={sp.place} data-panel={sp.panel ? '1' : undefined} href={sp.href}><i></i><span>{sp.label}</span></a>)}
@@ -100,6 +101,19 @@ const themes = [
           <p class="org">Department of Mechanical Engineering, Kyushu University</p>
         </div>
         <div class="town-title" aria-hidden="true"><span class="en">Town view</span>M2D<br />TOWN</div>
+        <!-- 町の天気（季節・空の色）。ボタンの処理は SiteChrome の共通スクリプト（.season-btn / .theme-dot） -->
+        <div class="weather" role="group" aria-label="町の天気">
+          <span class="en">Weather · 町の天気</span>
+          <div class="row">
+            <div class="season-picker" role="group" aria-label="季節">
+              {[['spring', '春'], ['summer', '夏'], ['autumn', '秋'], ['winter', '冬']].map(([k, l]) => <button type="button" class="season-btn" data-season-key={k}>{l}</button>)}
+            </div>
+            <span class="sep" aria-hidden="true"></span>
+            <div class="theme-picker" role="group" aria-label="空の色">
+              {themes.map((t) => <button type="button" class="theme-dot" data-theme-key={t.key} title={'空の色: ' + t.label} aria-label={'空の色: ' + t.label}></button>)}
+            </div>
+          </div>
+        </div>
         <div class="spot-panel" aria-live="polite">
           {spots.map((sp) => <div class="spot-info" data-for={sp.key}><span class="en">{sp.place} · {sp.en}</span><h3>{sp.label}</h3><p>{sp.desc}</p></div>)}
         </div>
@@ -109,8 +123,9 @@ const themes = [
     </div>
 
     <script>
-      import { createDiorama } from '../scripts/diorama.js';
-      let d = null;
+      import { createDiorama, seasonForDate } from '../scripts/diorama.js';
+      import { createWeatherFx } from '../scripts/weatherfx.js';
+      let d = null, fx = null;
       const current = () => document.documentElement.dataset.theme || 'yellow';
       function init() {
         const canvas = document.getElementById('diorama');
@@ -118,12 +133,14 @@ const themes = [
         canvas.dataset.ready = '1';
         const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
         let sv = null; try { sv = localStorage.getItem('m2d-season'); } catch (e) {}
+        const fxc = document.getElementById('weather-fx');
+        if (fxc && !fxc.dataset.ready) { fxc.dataset.ready = '1'; fx = createWeatherFx(fxc, SEASONS.includes(sv) ? sv : seasonForDate()); }
         const intro = !location.hash && !window.__m2dSwapped;   // 直接開いたときだけ、看板に寄った状態から引く
         try { d = createDiorama(canvas, { themeName: current(), seasonName: SEASONS.includes(sv) ? sv : undefined, base: canvas.dataset.base || '/', intro }); window.__d = d; }
         catch (e) { console.warn('WebGL を初期化できません', e); canvas.style.display = 'none'; document.body.classList.remove('intro'); }
       }
       document.addEventListener('m2d:theme', (e) => { if (d) d.applyTheme(e.detail); });
-      document.addEventListener('m2d:season', (e) => { if (d) d.applySeason(e.detail); });
+      document.addEventListener('m2d:season', (e) => { if (d) d.applySeason(e.detail); if (fx) fx.setSeason(e.detail); });
       // 目印にカーソルを合わせると、説明を出し、点線を結ぶ
       document.addEventListener('pointerover', (e) => {
         const m = e.target instanceof Element ? e.target.closest('.marker') : null; if (!m) return;
@@ -182,7 +199,7 @@ const themes = [
         addEventListener('hashchange', () => openSpot(spotFromHash()));
         document.addEventListener('astro:page-load', () => { const k = spotFromHash(); if (k) openSpot(k); });
       }
-      document.addEventListener('astro:before-swap', () => { if (d) { d.dispose(); d = null; } openKey = null; });
+      document.addEventListener('astro:before-swap', () => { if (d) { d.dispose(); d = null; } if (fx) { fx.dispose(); fx = null; } openKey = null; });
       document.addEventListener('astro:after-swap', () => { window.__m2dSwapped = true; });   // サイト内の移動で来たときは看板イントロを出さない
       document.addEventListener('astro:page-load', init);
       init();

@@ -31,7 +31,7 @@ const pageTitle = title + '｜' + site.labName + '（' + site.labNameAlt + '）'
   <body class="subpage">
     <canvas id="town-bg" class="town-bg" aria-hidden="true"></canvas>   <!-- 文章ページの背景にも町を薄く敷く（「町の中にいる」感じ） -->
     <SiteChrome />
-    <div class="flip">
+    <div class="page-body">
       <main class="page wrap">
         <header class="page-head">
           {here && <p class="crumb"><a href={withBase('/')}>M2D TOWN</a><span aria-hidden="true">▸</span>{here.place}</p>}

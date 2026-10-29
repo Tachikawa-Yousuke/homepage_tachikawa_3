@@ -16,7 +16,7 @@ const fmt = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '.');
 const pageTitle = site.labName + '｜' + site.labNameAlt + ' - ' + site.universityEn;
 const nav = [
   { href: withBase('/about'), label: '研究室概要' }, { href: withBase('/research'), label: '研究テーマ' }, { href: withBase('/members'), label: 'メンバー' },
-  { href: withBase('/publications'), label: '業績' }, { href: withBase('/equipment'), label: '装置・設備' }, { href: withBase('/join'), label: '進学・配属' }, { href: withBase('/access'), label: 'アクセス' },
+  { href: withBase('/publications'), label: '業績' }, { href: withBase('/equipment'), label: '装置・設備' }, { href: withBase('/access'), label: 'アクセス' },
 ];
 const mapUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('九州大学 伊都キャンパス ウエスト4号館');
 // 模型上の目印（位置は diorama.js の HOTSPOTS と対応）
@@ -27,11 +27,10 @@ const spots = [
   { key: 'members', en: 'Members', label: 'メンバー', href: withBase('/members'), desc: '教員・学生 ' + members.filter((m) => m.data.group !== 'alumni').length + ' 名の小さな研究室。メンバーを募集しています。' },
   { key: 'publications', en: 'Publications', label: '業績', href: withBase('/publications'), desc: '査読付き論文 ' + publications.length + ' 件を掲載（2024 年以降分。順次追加）。' },
   { key: 'equipment', en: 'Apparatus', label: '装置・設備', href: withBase('/equipment'), desc: '成膜・焼結から電子顕微鏡その場観察まで、' + equipment.length + ' 点の装置。' },
-  { key: 'join', en: 'Join us', label: '進学・配属', href: withBase('/join'), desc: '研究室見学・Web 面談は随時受け付けています。学部生も大学院進学希望者も歓迎。' },
   { key: 'access', en: 'Access', label: 'アクセス', href: withBase('/access'), desc: '伊都キャンパス ウエスト4号館 428・414・401 室。問い合わせはフォームから。' },
 ];
-// 町の場所名（メニューと同じ語彙）と、板で開く目印（文章ページの中身を読み込む）。メンバー・業績は長いのでページへ移動する
-const PANEL_SPOTS = ['about', 'research', 'equipment', 'join', 'access'];
+// 板で開く目印（文章ページの中身を読み込む）。業績は長いのでページへ移動する
+const PANEL_SPOTS = ['about', 'research', 'members', 'equipment', 'access'];   // 板で開く目印（業績だけは長いのでページへ移動）
 for (const sp of spots) { sp.place = PLACES.find((p) => p.en === sp.en)?.place || ''; sp.panel = PANEL_SPOTS.includes(sp.key); }
 const themes = [
   { key: 'yellow', label: '黄' }, { key: 'navy', label: '紺' }, { key: 'green', label: '緑' }, { key: 'black', label: '黒' },
@@ -155,7 +154,7 @@ const themes = [
         m.classList.remove('hover');
       });
       // ---- 板の開閉: メッセージ（#message）と場所の板（#about などは文章ページの中身を読み込んで表示）。開くとカメラがその目印に寄る ----
-      const PANEL_SPOTS = ['about', 'research', 'equipment', 'join', 'access'];
+      const PANEL_SPOTS = ['about', 'research', 'members', 'equipment', 'access'];
       const placeCache = {};
       let openKey = null;
       const setHash = (h) => { try { history.replaceState(null, '', h ? '#' + h : location.pathname + location.search); } catch (e) {} };
@@ -194,6 +193,7 @@ const themes = [
           const m = t.closest('.marker'); if (m && (m.dataset.spot === 'message' || m.dataset.panel)) { e.preventDefault(); e.stopPropagation(); openSpot(m.dataset.spot); return; }
           if (t.closest('a[href$="#message"]')) { e.preventDefault(); e.stopPropagation(); openSpot('message'); document.body.classList.remove('nav-open'); document.getElementById('drawer')?.setAttribute('aria-hidden', 'true'); return; }   // メニューの「大木のてっぺん」（メニューは閉じる）
           if (t.closest('.msg-close, #msg-shade')) openSpot(null);
+          const card = t.closest('#place .flip.can-flip'); if (card) card.classList.toggle('flipped');   // 板の中の名刺は押しても裏返る
         }, true);
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && openKey) openSpot(null); });
         addEventListener('hashchange', () => openSpot(spotFromHash()));

@@ -291,7 +291,7 @@ body.intro .town-name, body.intro .town-title { opacity: 0; }
 
 /* ---- 文章ページの背景の町（薄く敷く）。本文は上に重ねる ---- */
 .town-bg { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 0; opacity: .34; pointer-events: none; }
-.subpage > .flip { position: relative; z-index: 1; }
+.subpage > .page-body { position: relative; z-index: 1; }   /* 文章ページ本体（.flip は名刺用なので使わない） */
 
 /* ---- タウンビューの季節の演出（全画面の 2D キャンバス。見出しや目印の下に敷く） ---- */
 .weather-fx { position: fixed; inset: 0; width: 100%; height: 100%; display: block; z-index: 1; pointer-events: none; transition: opacity .8s; }
@@ -310,3 +310,8 @@ body.intro .weather { opacity: 0; pointer-events: none; }
 
 /* ---- 装置・設備などのカード写真（正方形に切り抜いて上に置く） ---- */
 .card img { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 12px; margin-bottom: 12px; background: var(--panel); }
+
+/* ---- 場所の板の中のメンバー: 名刺を縦一列に、区分（教員・学生・技術職員）は見出しで分ける ---- */
+.place-panel .card-flip-grid { grid-template-columns: 240px; }
+.place-panel .faculty-row { grid-template-columns: 240px 1fr; gap: 20px; }
+.place-panel .member-group { margin-bottom: 28px; }

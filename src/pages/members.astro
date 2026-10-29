@@ -46,7 +46,7 @@ const alumni = all.filter((m) => m.data.group === 'alumni');
   <script>
     // スマートフォンなど、カーソルを載せられない端末では押して裏返す
     document.addEventListener('click', (e) => {
-      const card = e.target instanceof Element ? e.target.closest('.flip.can-flip') : null; if (!card) return;
+      const card = e.target instanceof Element ? e.target.closest('.flip.can-flip') : null; if (!card || card.closest('#place')) return;   // トップの板の中は index.astro 側が処理
       card.classList.toggle('flipped');
     });
     document.addEventListener('keydown', (e) => {

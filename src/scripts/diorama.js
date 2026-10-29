@@ -515,7 +515,6 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     about: [-17, 8, -20],                   // 研究棟の屋上
     members: [24, 6, 22],                   // キャッチボールの間（ボールの通り道の上）
     equipment: [12, 8, -8],                 // 電子顕微鏡
-    join: [-12, 7, 10],                     // 立て看板
     access: [14, 5, 12],                    // 郵便受け
   };
 

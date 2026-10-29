@@ -14,7 +14,6 @@ export const PLACES: Place[] = [
   { path: '/members',      place: 'メンバー',    placeEn: 'Members',      label: 'メンバー',    en: 'Members' },
   { path: '/publications', place: '業績',       placeEn: 'Publications', label: '業績',       en: 'Publications' },
   { path: '/equipment',    place: '装置・設備',  placeEn: 'Apparatus',    label: '装置・設備',  en: 'Apparatus' },
-  { path: '/join',         place: '進学・配属',  placeEn: 'Join us',      label: '進学・配属',  en: 'Join us' },
   { path: '/access',       place: 'アクセス',    placeEn: 'Access',       label: 'アクセス',    en: 'Access' },
 ];
 

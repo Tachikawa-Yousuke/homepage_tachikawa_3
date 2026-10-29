@@ -12,11 +12,8 @@ const items = rows.map((r) => { const key = isoDate(r.e.data.date); if (prev && 
   <ul class="news-list">
     {items.map(({ e, Content, hasBody, shade }) => (
       <li class={'news-row' + (shade ? ' alt' : '')}>
-        <time datetime={isoDate(e.data.date)}>{fmtDate(e.data.date)}</time>
-        <div class="news-body">
-          <h3>{e.data.title}</h3>
-          {hasBody && <div class="news-text"><Content /></div>}
-        </div>
+        <time datetime={isoDate(e.data.date)}>{fmtDate(e.data.date)}</time>　<span class="news-title">{e.data.title}</span>
+        {hasBody && <div class="news-text"><Content /></div>}
       </li>
     ))}
   </ul>

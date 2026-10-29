@@ -61,7 +61,7 @@ const themes = [
     <script is:inline>try { if (!location.hash && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.body.classList.add('intro'); } catch (e) {}</script>
     <canvas id="diorama" data-base={import.meta.env.BASE_URL} aria-label="大きな一本の木を中心にした町の 3D 模型"></canvas>
     <noscript><div class="nojs"><p>3D 模型の表示には JavaScript が必要です。</p></div></noscript>
-    <svg class="leader" id="leader" aria-hidden="true"><path d="" /></svg>
+    <svg class="leader" id="leader" aria-hidden="true"><path d="" /></svg>   <!-- 目印と左の説明を結ぶ点線 -->
     <canvas id="weather-fx" class="weather-fx" aria-hidden="true"></canvas>   <!-- 画面全体の季節の演出（桜・紅葉・雪。夏は無し） -->
     <div id="trail" aria-hidden="true"></div>   <!-- ランニング人形が土台の外へ出ると、ここに足跡が下から上へ付いて消える -->
     <div id="markers" aria-label="模型上のリンク">
@@ -118,9 +118,10 @@ const themes = [
         <div class="spot-panel" aria-live="polite">
           {spots.map((sp) => (
             <div class="spot-info" data-for={sp.key}>
-              <span class="en">{sp.en}</span><h3>{sp.label}</h3><p>{sp.desc}</p>
-              {sp.key === 'news' && news.length > 0 && (
-                <ul class="spot-news">{news.map((n) => <li><time datetime={isoDate(n.data.date)}>{fmtDate(n.data.date)}</time><span>{n.data.title}</span></li>)}</ul>
+              <span class="en">{sp.en}</span><h3>{sp.label}</h3>
+              {sp.key !== 'news' && <p>{sp.desc}</p>}
+              {sp.key === 'news' && news.length > 0 && (   /* お知らせだけは説明文を置かず、直近 5 件を全件表示と同じ書式で */
+                <ul class="news-list spot-news">{news.map((n) => <li class="news-row"><time datetime={isoDate(n.data.date)}>{fmtDate(n.data.date)}</time>　<span class="news-title">{n.data.title}</span></li>)}</ul>
               )}
             </div>
           ))}

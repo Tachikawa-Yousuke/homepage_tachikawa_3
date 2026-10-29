@@ -15,7 +15,7 @@ for(let a=0;a<Math.PI*2;a+=0.01){const px=Math.cos(a)*RX,pz=RCZ+Math.sin(a)*RZ;
  if(Math.hypot(px,pz)<5)hits.add('大木の幹');
 }
 console.log('runner hits buildings:',[...hits]); console.log('runner hits trees:',[...thits]);
-const F={catchA:[8,22],catchB:[41,22],batter:[9,2],backpain:[-17,35.5]};
+const F={catchA:[8,22],catchB:[41,22],batter:[9,2],backpain:[-20,35.5]};
 for(const[k,[fx,fz]]of Object.entries(F)){const bh=B.filter(b=>inRect(fx,fz,b,1.2)).map(b=>b[5]);const th=T.filter(t=>Math.hypot(fx-t[0],fz-t[1])<3).map(t=>`tree(${t})`);console.log(k,bh,th);}
 // ball path z=22, x 8..41, y = 3.8..10.8
 const ballHits=B.filter(b=>b[1]-b[4]/2-0.5<22&&b[1]+b[4]/2+0.5>22&&b[0]+b[2]/2>8&&b[0]-b[2]/2<41).map(b=>{const u=(b[0]-8)/33;const y=0.3+3.5+Math.sin(Math.max(0,Math.min(1,u))*Math.PI)*7;return `${b[5]} h=${b[3]} ballY≈${y.toFixed(1)}`});

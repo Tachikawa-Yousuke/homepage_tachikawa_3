@@ -393,7 +393,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
 
   // ---- 看板「WELCOME TO / M2D TOWN」（土台の手前左、正面向き、一本の柱）。イントロでは 文字 → 板 → 柱 の順に現れる ----
   const SIGN = { x: -26.5, z: 29, w: 10, h: 5, y0: 3.5 };            // 板の幅・高さ・下端の高さ。中心は (x, y0 + h/2, z)
-  const WALK = { z: SIGN.z + 6.5, x0: SIGN.x - 12.5, x1: SIGN.x + 9.5, speed: 3.6 };   // イントロで腰痛人形が歩く線（土台の外の床）: 開始 x、停止 x、速さ
+  const WALK = { z: SIGN.z + 6.5, x0: SIGN.x - 12.5, x1: SIGN.x + 6.5, speed: 3.6 };   // イントロで腰痛人形が歩く線（土台の外の床）: 開始 x、停止 x、速さ。人形は看板より手前なので画面上では約 1.3 倍動く
   const signState = { letters: 1, board: 1, post: 1 };            // それぞれ 0〜1。イントロの間だけ 1 未満になる
   const hex = (n) => '#' + n.toString(16).padStart(6, '0');
   const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
@@ -408,17 +408,36 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     boardTex.needsUpdate = true;
   }
   let lettersDrawn = -1;
+  function drawTracked(c, text, cx, y, spacing) {                   // 字間を空けて中央揃えで描く（canvas の letterSpacing 非対応ブラウザ向け）。描いた幅を返す
+    const chars = [...text], widths = chars.map((ch) => c.measureText(ch).width);
+    const total = widths.reduce((a, b) => a + b, 0) + spacing * (chars.length - 1);
+    let x = cx - total / 2; c.textAlign = 'left';
+    chars.forEach((ch, i) => { c.fillText(ch, x, y); x += widths[i] + spacing; });
+    c.textAlign = 'center'; return total;
+  }
   function drawLetters(reveal = signState.letters) {               // 文字だけ（背景は透明）。reveal: 左から何割まで見せるか
     if (reveal === lettersDrawn) return; lettersDrawn = reveal;
     const c = letterCanvas.getContext('2d'), W = letterCanvas.width, H = letterCanvas.height;
+    const dark = hex(t.letter), accent = hex(t.atom);
     c.clearRect(0, 0, W, H);
     c.save(); c.beginPath(); c.rect(0, 0, W * reveal, H); c.clip();
-    c.fillStyle = hex(t.letter); c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = signFont(700, 50); c.fillText('W E L C O M E   T O', W / 2, 140);
-    let px = 190; c.font = signFont(900, px);
-    const maxW = W - 2 * 110, mw = c.measureText('M2D TOWN').width;
-    if (mw > maxW) { px = Math.floor(px * maxW / mw); c.font = signFont(900, px); }   // 縁取りの内側に収まる大きさに縮める
-    c.fillText('M2D TOWN', W / 2, 318);
+    c.textBaseline = 'middle';
+    // 上段: 細い罫線 ― WELCOME TO ― （小さく、字間広く）
+    c.fillStyle = dark; c.globalAlpha = 0.85; c.font = signFont(500, 36);
+    const tw = drawTracked(c, 'WELCOME TO', W / 2, 128, 13);
+    c.globalAlpha = 0.45; c.fillRect(W / 2 - tw / 2 - 150, 126, 110, 3); c.fillRect(W / 2 + tw / 2 + 40, 126, 110, 3);
+    c.globalAlpha = 1;
+    // 中段: M2D TOWN（極太）＋ ベースラインに小さなアクセント色の四角（サイトのブランドマークと同じ）
+    const title = 'M2D TOWN'; let px = 196; c.font = signFont(900, px);
+    const maxW = W - 2 * 110; let mw = c.measureText(title).width;
+    if (mw > maxW) { px = Math.floor(px * maxW / mw); c.font = signFont(900, px); mw = c.measureText(title).width; }   // 縁取りの内側に収める
+    const sq = Math.round(px * 0.11), gap = Math.round(px * 0.07), x0 = W / 2 - (mw + gap + sq) / 2, ty = 300;
+    c.textAlign = 'left'; c.fillStyle = dark; c.fillText(title, x0, ty);
+    c.fillStyle = accent; c.fillRect(x0 + mw + gap, ty + px * 0.36 - sq, sq, sq);
+    c.textAlign = 'center';
+    // 下段: 研究室名（ごく小さく、字間広く）
+    c.fillStyle = dark; c.globalAlpha = 0.6; c.font = signFont(600, 19);
+    drawTracked(c, 'MECHANICS FOR MATERIAL DESIGN LAB  ·  KYUSHU UNIVERSITY', W / 2, 416, 4); c.globalAlpha = 1;   // 板の縁取りの内側に収まる幅
     c.restore(); letterTex.needsUpdate = true;
   }
   // 看板と腰痛人形は world ではなく scene に置く（イントロで町を消したり縮めたりしても残すため。world は原点にあるので座標は同じ）
@@ -612,7 +631,10 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
     if (walking) {
       bp.g.position.x = WALK.x0 + WALK.speed * time; swingLeg(bp, time * 4.5, 0.35);
       bp.g.position.y = PAGE_Y + Math.abs(Math.sin(time * 4.5)) * 0.1;
-      signState.letters = Math.max(0, Math.min(1, (bp.g.position.x - 0.8 - (SIGN.x - SIGN.w / 2)) / SIGN.w));
+      // 文字は「画面上で人形が通り過ぎた所」から現れる: 人形の x をカメラから見て看板の面に投影する（人形は看板より手前なので倍率 k ≈ 1.3）
+      const cz = camera.position.z, k = (cz - (SIGN.z + 0.36)) / (cz - WALK.z);
+      const xProj = camera.position.x + (bp.g.position.x - camera.position.x) * k;
+      signState.letters = Math.max(0, Math.min(1, (xProj - 0.9 * k - (SIGN.x - SIGN.w / 2)) / SIGN.w));
     } else { bp.g.position.x = WALK.x1; swingLeg(bp, 0, 0); bp.g.position.y = PAGE_Y; }
     if (introOn) {
       signState.letters = walking ? signState.letters : 1;
@@ -651,7 +673,7 @@ export function createDiorama(canvas, { themeName = 'yellow', seasonName = seaso
       // 町は、人形が歩いて看板ができるまでは出さず、引き始めると中心から育つように現れる
       world.visible = u > 0; const g = Math.max(0, Math.min(1, u)); world.scale.setScalar(0.001 + 0.999 * (1 - Math.pow(1 - g, 3)));
       const tanH = tanV * camera.aspect;
-      ov = { target: new THREE.Vector3(SIGN.x + 1.5, 1.9, SIGN.z + 3), dist: Math.max(16, 12 / tanH), elev: 0.05, film: 0 };   // ほぼ真横（目線は人形の胸の高さ）。画面の横幅が約 24 単位（看板 10 ＋ 歩く余白）
+      ov = { target: new THREE.Vector3(SIGN.x, 2.1, SIGN.z + 0.36), dist: Math.max(16, 12 / tanH), elev: 0.05, film: 0 };   // 看板の文字の中心を画面中央に。ほぼ真横（目線は人形の胸の高さ）。画面の横幅が約 24 単位
     } else if (focusTween || focusW > 0) {
       if (focusTween) { const u = Math.min(1, (time - focusTween.t0) / focusTween.dur); focusW = focusTween.from + (focusTween.to - focusTween.from) * easeIO(u); if (u >= 1) focusTween = null; }
       cw = focusW; ov = focusFrom && { ...focusFrom, dist: dTown * focusFrom.distF };
